@@ -719,7 +719,152 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # -------------------------------------------------------------
-        # ROUTE 4: POST /api/auth/login
+        # ROUTE 4: POST /api/auth/login-send-otp (Login Step 1: Send OTP)
+        # -------------------------------------------------------------
+        elif path == "/api/auth/login-send-otp":
+            identifier = (body.get("email") or body.get("identifier") or body.get("mobile") or "").lower().strip()
+            identifier_clean = re.sub(r"\D", "", identifier)
+            password = body.get("password") or ""
+            is_passwordless = body.get("passwordless", False)
+
+            user = USERS.get(identifier)
+            if not user and identifier_clean and len(identifier_clean) == 10:
+                for u in USERS.values():
+                    if u.get("mobile") == identifier_clean:
+                        user = u
+                        break
+
+            # Fallback check against SQLite users table
+            if not user:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT * FROM users WHERE LOWER(email) = ? OR mobile = ?", (identifier, identifier_clean if len(identifier_clean) == 10 else identifier))
+                    row = cursor.fetchone()
+                    conn.close()
+                    if row:
+                        u = dict(row)
+                        user = {
+                            "id": str(u["id"]),
+                            "email": u["email"],
+                            "mobile": u.get("mobile") or "",
+                            "name": u["name"],
+                            "ministry": u.get("ministry_id") or "Ministry of Statistics & Programme Implementation",
+                            "department": u.get("department") or "National Statistical Office (NSO)",
+                            "designation": u.get("designation") or "Senior Statistical Officer (SSO)",
+                            "role": u.get("designation") or "Senior Statistical Officer (SSO)",
+                            "employeeId": u.get("employee_id") or "ISS/2026/84920",
+                            "password_hash": u.get("password_hash"),
+                            "salt": u.get("salt"),
+                            "overallScore": u.get("overall_score") or 68,
+                            "learningHours": u.get("learning_hours") or 42.5
+                        }
+                except Exception:
+                    pass
+
+            if not user:
+                self.send_json({"success": False, "error": "Account not found with this mobile number or email. Please register first."}, status_code=404)
+                return
+
+            if not is_passwordless and password:
+                if not user.get("password_hash") or not user.get("salt"):
+                    self.send_json({"success": False, "error": "Invalid login credentials. Please try again."}, status_code=401)
+                    return
+                expected_hash = hashlib.sha256((password + user["salt"]).encode('utf-8')).hexdigest()
+                if expected_hash != user["password_hash"]:
+                    self.send_json({"success": False, "error": "Invalid password entered. Please try again."}, status_code=401)
+                    return
+
+            # Generate 6-digit Login OTP
+            otp = f"{random.randint(100000, 999999)}"
+            login_key = f"login_{identifier}"
+            OTP_STORE[login_key] = {
+                "otp": otp,
+                "expires": time.time() + 300,
+                "user": user,
+                "identifier": identifier
+            }
+
+            mobile_target = user.get("mobile") or identifier_clean
+            email_target = user.get("email") or identifier
+
+            if mobile_target and len(mobile_target) == 10:
+                sent_real, msg = send_real_sms_otp(mobile_target, otp)
+                if not sent_real:
+                    print(f"[LOGIN SMS DEV NOTICE] >>> Real SMS delivery requires SMS gateway API key. Demo Login OTP [{otp}] generated for +91-{mobile_target} <<<")
+            elif email_target and "@" in email_target:
+                send_smtp_otp(email_target, otp)
+
+            self.send_json({
+                "success": True,
+                "message": f"Login OTP dispatched to registered mobile number +91 {mobile_target}" if mobile_target else "Login OTP sent to your email",
+                "otp": otp,
+                "identifier": identifier,
+                "mobile": mobile_target,
+                "email": email_target
+            })
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE 5: POST /api/auth/login-verify-otp (Login Step 2: Verify OTP)
+        # -------------------------------------------------------------
+        elif path == "/api/auth/login-verify-otp":
+            identifier = (body.get("identifier") or body.get("mobile") or body.get("email") or "").lower().strip()
+            otp_entered = str(body.get("otp", "")).strip()
+
+            login_key = f"login_{identifier}"
+            record = OTP_STORE.get(login_key)
+
+            if not record:
+                # Try finding by mobile clean
+                clean_id = re.sub(r"\D", "", identifier)
+                for k, v in list(OTP_STORE.items()):
+                    if k.startswith("login_") and (v.get("identifier") == clean_id or v.get("user", {}).get("mobile") == clean_id):
+                        record = v
+                        login_key = k
+                        break
+
+            if not record:
+                self.send_json({"success": False, "error": "No active login session found. Please request a new OTP code."}, status_code=400)
+                return
+
+            if time.time() > record["expires"]:
+                del OTP_STORE[login_key]
+                self.send_json({"success": False, "error": "Login OTP has expired. Please request a new code."}, status_code=400)
+                return
+
+            if record["otp"] != otp_entered:
+                self.send_json({"success": False, "error": "Invalid OTP code entered. Please re-enter the code or request a new OTP."}, status_code=400)
+                return
+
+            # Success -> Issue Token
+            user = record["user"]
+            del OTP_STORE[login_key]
+
+            safe_user = {k: v for k, v in user.items() if k not in ["password_hash", "salt"]}
+            token = f"token_login_{secrets.token_hex(8)}"
+
+            # Audit log to SQLite
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ? OR LOWER(email) = ?", (safe_user.get("id"), safe_user.get("email")))
+                ip_addr = self.client_address[0] if hasattr(self, 'client_address') and self.client_address else '127.0.0.1'
+                cursor.execute("""
+                    INSERT INTO login_audit_logs (user_id, email, name, ip_address, login_time, status)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 'SUCCESS')
+                """, (safe_user.get("id") or safe_user.get("employeeId"), safe_user.get("email"), safe_user.get("name"), ip_addr))
+                conn.commit()
+                conn.close()
+                print(f"[DB Audit] Recorded successful OTP login for '{safe_user.get('name')}' into SQLite database.")
+            except Exception as e:
+                print(f"[DB Warning] Could not log login event to SQLite: {e}")
+
+            self.send_json({"success": True, "token": token, "user": safe_user, "role": safe_user.get("role", "learner")})
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE 6: POST /api/auth/login (Direct Credential Auth)
         # -------------------------------------------------------------
         elif path == "/api/auth/login":
             identifier = (body.get("email") or body.get("identifier") or body.get("mobile") or "").lower().strip()
@@ -763,12 +908,12 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                     pass
 
             if not user or not user.get("password_hash") or not user.get("salt"):
-                self.send_json({"success": False, "error": "Invalid email or password"}, status_code=401)
+                self.send_json({"success": False, "error": "Invalid mobile/email or password"}, status_code=401)
                 return
 
             expected_hash = hashlib.sha256((password + user["salt"]).encode('utf-8')).hexdigest()
             if expected_hash != user["password_hash"]:
-                self.send_json({"success": False, "error": "Invalid email or password"}, status_code=401)
+                self.send_json({"success": False, "error": "Invalid mobile/email or password"}, status_code=401)
                 return
 
             safe_user = {k: v for k, v in user.items() if k not in ["password_hash", "salt"]}
@@ -778,15 +923,15 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor()
-                cursor.execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE LOWER(email) = ?", (email,))
+                cursor.execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ? OR LOWER(email) = ?", (safe_user.get("id"), safe_user.get("email")))
                 ip_addr = self.client_address[0] if hasattr(self, 'client_address') and self.client_address else '127.0.0.1'
                 cursor.execute("""
                     INSERT INTO login_audit_logs (user_id, email, name, ip_address, login_time, status)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 'SUCCESS')
-                """, (safe_user.get("id") or safe_user.get("employeeId"), email, safe_user.get("name"), ip_addr))
+                """, (safe_user.get("id") or safe_user.get("employeeId"), safe_user.get("email"), safe_user.get("name"), ip_addr))
                 conn.commit()
                 conn.close()
-                print(f"[DB Audit] Recorded login for '{safe_user.get('name')}' ({email}) into SQLite database.")
+                print(f"[DB Audit] Recorded direct login for '{safe_user.get('name')}' into SQLite database.")
             except Exception as e:
                 print(f"[DB Warning] Could not log login event to SQLite: {e}")
 

@@ -159,5 +159,39 @@
     "overallScore": 68,
     "learningHours": 42.5,
     "registered_at": "2026-09-01 19:17:53"
+  },
+  "jamba@nic.gov.in": {
+    "id": "usr_87b11c83fd55",
+    "email": "jamba@nic.gov.in",
+    "mobile": "9063665665",
+    "name": "jabba gaba",
+    "ministry": "Ministry of Finance",
+    "department": "Budget Division \u2014 Fiscal & Revenue Statistics Unit",
+    "designation": "Senior Statistical Officer (SSO) \u2014 SSS Cadre",
+    "role": "Senior Statistical Officer (SSO) \u2014 SSS Cadre",
+    "employeeId": "SSS/2026/42308",
+    "org_type": "Central Government",
+    "password_hash": "f0072fb2dbdc65c941188cb46b741908facee49b4447c827e488951db05bbae7",
+    "salt": "4a8881ad294864512e8dd0518f1ffdc5",
+    "overallScore": 68,
+    "learningHours": 42.5,
+    "registered_at": "2026-09-01 19:21:37"
+  },
+  "rajesh.kumar@nic.in": {
+    "id": "usr_e798cec290bd",
+    "email": "rajesh.kumar@nic.in",
+    "mobile": "9876543210",
+    "name": "Rajesh Kumar",
+    "ministry": "Ministry of Statistics & Programme Implementation (MoSPI)",
+    "department": "National Statistical Office (NSO) - Field Operations Division (FOD)",
+    "designation": "Senior Statistical Officer (SSO)",
+    "role": "Senior Statistical Officer (SSO)",
+    "employeeId": "ISS/2026/67856",
+    "org_type": "Central Government",
+    "password_hash": "dc17d28cd1b5a380169ce317e88e904427da2aa08ea9ae6149236ec7c36b820d",
+    "salt": "2dc2a586caf7b9436c5ab51897d60736",
+    "overallScore": 68,
+    "learningHours": 42.5,
+    "registered_at": "2026-09-01 19:28:24"
   }
 }

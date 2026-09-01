@@ -40,9 +40,20 @@
         step1Error: null,
         step2Error: null,
         step3Error: null,
-        loginError: null,
+        
+        // Login State & 2-Factor OTP
+        loginStep: 1, // 1: Credentials + CAPTCHA, 2: 6-Digit OTP Verification
+        loginMode: 'otp', // 'otp' | 'password'
         loginEmail: '',
-        loginPassword: ''
+        loginPassword: '',
+        loginOtp: '',
+        loginDemoOtp: '',
+        loginMobile: '',
+        loginError: null,
+        loginStep2Error: null,
+        isVerifyingLoginOtp: false,
+        loginResendTimer: 0,
+        loginTimerInterval: null
     };
 
     // CAPTCHA Generator & State Engine
@@ -94,7 +105,7 @@
 
         // Reset input fields
         const loginInp = document.getElementById('loginCaptchaInput');
-        const regInp = document.getElementById('regCaptchaInput');
+        const regInp = document.getElementById('registerCaptchaInput');
         if (loginInp) loginInp.value = '';
         if (regInp) regInp.value = '';
 
@@ -126,37 +137,10 @@
         const inputVal = (val || '').trim();
         const matches = inputVal.toLowerCase() === currentCaptchaCode.toLowerCase();
 
-        if (matches) {
-            isRobotChecked = true;
-        } else {
-            isRobotChecked = false;
-        }
-
+        isRobotChecked = matches;
         syncCaptchaUI();
+
         if (formType === 'login') {
-            if (typeof window.updateLoginState === 'function') window.updateLoginState();
-        } else {
-            if (typeof window.updateStep3State === 'function') window.updateStep3State();
-        }
-    };
-
-    // 1-Click Quick Verification ("I'm not a robot")
-    window.quickVerifyRobot = function(formType) {
-        isRobotChecked = !isRobotChecked;
-
-        const loginInp = document.getElementById('loginCaptchaInput');
-        const regInp = document.getElementById('regCaptchaInput');
-
-        if (isRobotChecked) {
-            if (loginInp) loginInp.value = currentCaptchaCode;
-            if (regInp) regInp.value = currentCaptchaCode;
-        } else {
-            if (loginInp) loginInp.value = '';
-            if (regInp) regInp.value = '';
-        }
-
-        syncCaptchaUI();
-        if (formType === 'login' || authState.tab === 'login') {
             if (typeof window.updateLoginState === 'function') window.updateLoginState();
         } else {
             if (typeof window.updateStep3State === 'function') window.updateStep3State();
@@ -165,34 +149,12 @@
 
     function syncCaptchaUI() {
         const loginBadge = document.getElementById('loginCaptchaBadge');
-        const regBadge = document.getElementById('regCaptchaBadge');
-        const loginBtn = document.getElementById('loginQuickVerifyBtn');
-        const regBtn = document.getElementById('regQuickVerifyBtn');
+        const regBadge = document.getElementById('registerCaptchaBadge');
         const loginErr = document.getElementById('loginCaptchaError');
-        const regErr = document.getElementById('regCaptchaError');
+        const regErr = document.getElementById('registerCaptchaError');
 
-        if (loginBadge) loginBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300' : 'hidden';
-        if (regBadge) regBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300' : 'hidden';
-
-        if (loginBtn) {
-            loginBtn.className = isRobotChecked 
-                ? 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' 
-                : 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs';
-            loginBtn.innerHTML = `
-                <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
-                <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
-            `;
-        }
-
-        if (regBtn) {
-            regBtn.className = isRobotChecked 
-                ? 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' 
-                : 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs';
-            regBtn.innerHTML = `
-                <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
-                <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
-            `;
-        }
+        if (loginBadge) loginBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-700 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300' : 'hidden';
+        if (regBadge) regBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-700 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300' : 'hidden';
 
         if (isRobotChecked) {
             if (loginErr) loginErr.classList.add('hidden');
@@ -200,11 +162,57 @@
         }
     }
 
+    // Helper: Render Standard Intuitive Security CAPTCHA Box
+    function renderCaptchaComponent(formType) {
+        return `
+        <div class="space-y-1.5 pt-0.5">
+            <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-700">Security Verification <span class="text-red-500">*</span></label>
+                <span class="text-[10px] text-slate-500 font-medium">Type the code shown below</span>
+            </div>
+            <div class="p-2.5 bg-slate-50 border border-slate-300 rounded-xl space-y-2">
+                
+                <!-- CAPTCHA Display Card with Dark Background + Amber Letters -->
+                <div class="flex items-center justify-between bg-slate-950 px-3.5 py-2 rounded-lg border border-slate-700 shadow-inner">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">CAPTCHA:</span>
+                        <span class="captchaCodeDisplay text-amber-400 font-mono font-black text-base tracking-[0.25em] select-none">${currentCaptchaCode}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="playAudioCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Listen to CAPTCHA Code">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <button type="button" onclick="refreshCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Generate New CAPTCHA">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Single Clean Input Field with live match feedback -->
+                <div class="relative">
+                    <input type="text" id="${formType}CaptchaInput" placeholder="Enter CAPTCHA characters shown above" oninput="handleCaptchaInputChange(this.value, '${formType}')" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-600 pr-24">
+                    <div id="${formType}CaptchaBadge" class="${isRobotChecked ? '' : 'hidden'} absolute right-2 top-2 text-emerald-700 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i> <span>Verified</span>
+                    </div>
+                </div>
+
+                <div id="${formType}CaptchaError" class="text-[11px] text-red-600 font-semibold hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i> Incorrect CAPTCHA code. Please type the characters shown above.
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
     // Reset Auth State helper
     function resetAuthState(tab = 'register') {
         if (authState.timerInterval) {
             clearInterval(authState.timerInterval);
             authState.timerInterval = null;
+        }
+        if (authState.loginTimerInterval) {
+            clearInterval(authState.loginTimerInterval);
+            authState.loginTimerInterval = null;
         }
         currentCaptchaCode = generateCaptchaCode();
         isRobotChecked = false;
@@ -231,9 +239,20 @@
             step1Error: null,
             step2Error: null,
             step3Error: null,
-            loginError: null,
+            
+            // Login State
+            loginStep: 1,
+            loginMode: 'otp',
             loginEmail: '',
-            loginPassword: ''
+            loginPassword: '',
+            loginOtp: '',
+            loginDemoOtp: '',
+            loginMobile: '',
+            loginError: null,
+            loginStep2Error: null,
+            isVerifyingLoginOtp: false,
+            loginResendTimer: 0,
+            loginTimerInterval: null
         };
     }
 
@@ -302,108 +321,112 @@
                     }
                 });
             }
-            if (list.length > 0) return list;
-        }
-        if (govType === 'central') {
-            return [
-                "National Statistical Office (NSO) - Survey Design and Research Division (SDRD), Kolkata",
-                "National Statistical Office (NSO) - Field Operations Division (FOD), New Delhi",
-                "National Statistical Office (NSO) - Data Processing Division (DPD), Kolkata",
-                "National Accounts Division (NAD) — GDP & Macroeconomic Statistics",
-                "Economic Statistics Division (ESD) — ASI, IIP & Business Register",
-                "Price Statistics Division (PSD) — Consumer Price Index (CPI)",
-                "Social Statistics Division (SSD) — SDG National Indicator Framework",
-                "National Statistical Systems Training Academy (NSSTA), Greater Noida"
-            ];
-        } else {
-            return [
-                "Directorate of Economics & Statistics (DES) — State Accounts & GSDP",
-                "Directorate of Economics & Statistics (DES) — Socio-Economic Surveys",
-                "District Statistical Offices (DSO Network across all Districts)",
-                "State Data Analytics & SDG Monitoring Cell"
-            ];
-        }
-    }
-
-    function getDesignationList(govType, ministryName, deptName) {
-        if (!deptName || deptName.startsWith('--')) return [];
-        if (window.OrgDataService) {
-            const desigs = window.OrgDataService.getDesignations(govType, ministryName, deptName, deptName);
-            if (desigs && desigs.length > 0) {
-                return desigs.map(d => d.title || d.name || d);
-            }
+            if (list.length > 0) return Array.from(new Set(list));
         }
         return [
-            "Junior Statistical Officer (JSO) — SSS Cadre",
-            "Senior Statistical Officer (SSO) — SSS Cadre",
-            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
-            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
-            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
-            "Director (Survey Design / Official Statistics) — ISS Cadre",
-            "Deputy Director General (DDG - Statistical Cadre)",
-            "Additional Director General (ADG - Official Statistics)",
-            "Director General (NSO / Central Statistical System)",
-            "District Statistical Officer (DSO) — State DES",
-            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
-            "Statistical Investigator / Survey Field Officer (FOD)"
+            "National Statistical Office (NSO) - Field Operations Division (FOD)",
+            "National Statistical Office (NSO) - Survey Design & Research Division (SDRD)",
+            "National Statistical Office (NSO) - Data Quality & Coordination",
+            "Economic Statistics Division (ESD)",
+            "Social Statistics Division (SSD)"
         ];
     }
 
-    // Start 30s Countdown for Resend OTP
+    function getDesignationList(govType, ministryName, departmentName) {
+        if (!departmentName || departmentName.startsWith('--')) return [];
+        if (window.OrgDataService) {
+            const roles = window.OrgDataService.getDesignations(govType, ministryName, departmentName);
+            if (roles && roles.length > 0) {
+                return roles.map(r => r.name || r);
+            }
+        }
+        return [
+            "Junior Statistical Officer (JSO)",
+            "Senior Statistical Officer (SSO)",
+            "Assistant Director (AD)",
+            "Deputy Director (DD)",
+            "Joint Director (JD)",
+            "Director",
+            "Deputy Director General (DDG)",
+            "Additional Director General (ADG)",
+            "Director General (DG)",
+            "Statistical Investigator Grade-I",
+            "Statistical Investigator Grade-II"
+        ];
+    }
+
+    // Resend Timers
     function startResendTimer() {
         if (authState.timerInterval) clearInterval(authState.timerInterval);
         authState.resendTimer = 30;
         authState.timerInterval = setInterval(() => {
-            if (authState.resendTimer > 0) {
-                authState.resendTimer--;
-                const timerEl = document.getElementById('resendTimerDisplay');
-                if (timerEl) timerEl.textContent = `Resend code in ${authState.resendTimer}s`;
-            } else {
+            authState.resendTimer--;
+            const timerEl = document.getElementById('resendTimerContainer');
+            if (timerEl) {
+                if (authState.resendTimer > 0) {
+                    timerEl.innerHTML = `<span id="resendTimerDisplay" class="text-slate-500 font-medium"><i class="fa-regular fa-clock"></i> Resend OTP in ${authState.resendTimer}s</span>`;
+                } else {
+                    timerEl.innerHTML = `<button type="button" onclick="handleResendOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Resend OTP via SMS</button>`;
+                }
+            }
+            if (authState.resendTimer <= 0) {
                 clearInterval(authState.timerInterval);
                 authState.timerInterval = null;
-                const timerContainer = document.getElementById('resendTimerContainer');
-                if (timerContainer) {
-                    timerContainer.innerHTML = `<button type="button" onclick="handleResendOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer"><i class="fa-solid fa-rotate-right"></i> Resend OTP Code</button>`;
-                }
             }
         }, 1000);
     }
 
-    // -------------------------------------------------------------
-    // MAIN RENDERER
-    // -------------------------------------------------------------
-    function renderAuthModal(state) {
-        if (!state.isAuthModalOpen) return '';
+    function startLoginResendTimer() {
+        if (authState.loginTimerInterval) clearInterval(authState.loginTimerInterval);
+        authState.loginResendTimer = 30;
+        authState.loginTimerInterval = setInterval(() => {
+            authState.loginResendTimer--;
+            const timerEl = document.getElementById('loginResendTimerContainer');
+            if (timerEl) {
+                if (authState.loginResendTimer > 0) {
+                    timerEl.innerHTML = `<span id="loginResendTimerDisplay" class="text-slate-500 font-medium"><i class="fa-regular fa-clock"></i> Resend OTP in ${authState.loginResendTimer}s</span>`;
+                } else {
+                    timerEl.innerHTML = `<button type="button" onclick="handleResendLoginOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Resend Login OTP via SMS</button>`;
+                }
+            }
+            if (authState.loginResendTimer <= 0) {
+                clearInterval(authState.loginTimerInterval);
+                authState.loginTimerInterval = null;
+            }
+        }, 1000);
+    }
 
-        const tab = state.authModalTab || authState.tab || 'register';
-        const step = authState.step || 1;
-        const isNodalOpen = state.isNodalModalOpen || false;
+    // Modal Controller
+    function renderAuthModal() {
+        const isOpen = window.store && window.store.state && window.store.state.isAuthModalOpen;
+        const currentTab = (window.store && window.store.state && window.store.state.authModalTab) || authState.tab || 'register';
+        authState.tab = currentTab;
+
+        if (!isOpen) return '';
 
         return `
-        <!-- Full Overlay Modal Container -->
-        <div id="statskillAuthModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
-            
-            <!-- Split-Screen Dialog Card (1:1 iGOT Layout) -->
-            <div class="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto transition-all flex flex-col md:flex-row max-h-[96vh] min-h-[640px]">
+        <div id="authModalOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm transition-opacity duration-300">
+            <div class="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-200 animate-fadeIn" style="max-height: 94vh;">
                 
                 <!-- Close Button -->
-                <button onclick="closeAuthModal()" class="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all focus:outline-none cursor-pointer" title="Close">
-                    <i class="fa-solid fa-xmark text-sm"></i>
+                <button onclick="closeAuthModal()" class="absolute top-3.5 right-3.5 z-30 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-sm transition-all cursor-pointer shadow-xs">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
 
-                <!-- LEFT HALF: ROYAL BLUE VISUAL GRAPHIC -->
-                <div class="w-full md:w-5/12 p-6 sm:p-8 bg-[#0b3b80] text-white flex flex-col justify-between relative overflow-hidden" style="background: linear-gradient(135deg, #072559 0%, #0b3b80 50%, #0052cc 100%);">
-                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
-                    ${tab === 'register' ? renderLeftRegisterGraphic(step) : renderLeftLoginGraphic()}
+                <!-- LEFT SIDE: Royal Blue Informational Hero (40%) -->
+                <div class="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0B2545] via-[#134074] to-[#00509d] text-white p-7 flex-col justify-between relative overflow-hidden">
+                    <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-blue-400/10 blur-2xl pointer-events-none"></div>
+                    <div class="absolute -left-16 -bottom-16 w-56 h-56 rounded-full bg-orange-400/10 blur-2xl pointer-events-none"></div>
+
+                    ${authState.tab === 'login' ? renderLeftLoginHero() : renderLeftRegisterHero()}
                 </div>
 
-                <!-- RIGHT HALF: CLEAN WHITE AUTH FORM -->
-                <div class="w-full md:w-7/12 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto bg-white">
-                    ${tab === 'login' ? renderLoginForm(state) : renderRegistrationWizard(state, step)}
-                </div>
+                <!-- RIGHT SIDE: Clean Auth Forms (60%) -->
+                <div class="w-full md:w-7/12 bg-white p-5 sm:p-7 flex flex-col justify-between overflow-y-auto" style="max-height: 94vh;">
+                    
+                    ${authState.tab === 'login' ? renderLoginForm(authState) : renderRegistrationWizard(authState, authState.step)}
 
-                <!-- Drawer for Nodal Officer Assistance -->
-                ${isNodalOpen ? renderNodalOfficerDrawer(state) : ''}
+                </div>
 
             </div>
         </div>
@@ -411,91 +434,57 @@
     }
 
     window.closeAuthModal = function() {
-        resetAuthState();
         if (window.store) {
             window.store.state.isAuthModalOpen = false;
             window.store.notify();
         }
+        resetAuthState();
     };
 
     window.switchTab = function(newTab) {
-        currentCaptchaCode = generateCaptchaCode();
-        resetAuthState(newTab);
         if (window.store) {
             window.store.state.authModalTab = newTab;
             window.store.notify();
         }
+        resetAuthState(newTab);
     };
 
-    function renderNodalOfficerDrawer(state) {
+    function renderLeftLoginHero() {
         return `
-        <div class="absolute inset-0 z-40 bg-white/95 backdrop-blur-md p-6 overflow-y-auto animate-fadeIn flex flex-col justify-between">
-            <div class="flex justify-between items-center pb-3 border-b">
-                <h3 class="font-bold text-slate-900 text-sm">Nodal Officer Assistance</h3>
-                <button onclick="store.state.isNodalModalOpen = false; store.notify();" class="text-slate-500 hover:text-slate-900 text-sm cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+        <div class="relative z-10 space-y-4 my-auto">
+            <div class="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-400 text-2xl font-black shadow-inner">
+                <i class="fa-solid fa-shield-halved"></i>
             </div>
-            <div class="py-4 space-y-3 text-xs text-slate-700">
-                <p class="font-bold text-blue-900">Need help joining StatSkill AI under your Ministry / MDO?</p>
-                <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl space-y-1.5">
-                    <div class="font-bold text-slate-900">MoSPI Nodal Officer Support Desk</div>
-                    <div>Email: <strong class="text-blue-700">nodalofficer.statskill@mospi.gov.in</strong></div>
-                    <div>Helpline: <strong>+91 11 2334 0000</strong> (Mon-Fri 9:00 AM - 5:30 PM IST)</div>
+            <div class="space-y-1.5">
+                <p class="text-xs font-bold uppercase tracking-widest text-blue-200">National Statistical Portal</p>
+                <h2 class="text-2xl sm:text-3xl font-black text-white font-sans">Secure 2-Factor Officer Login</h2>
+                <p class="text-xs text-blue-100/90 leading-relaxed pt-1">
+                    MoSPI Capacity Building & Competency Management Platform. Sign in securely using <strong>Mobile SMS OTP</strong> or your official credentials.
+                </p>
+            </div>
+            <div class="space-y-2 pt-2 text-xs">
+                <div class="flex items-center gap-2 text-blue-100">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span>Real-time SMS OTP verification</span>
                 </div>
-            </div>
-            <button onclick="store.state.isNodalModalOpen = false; store.notify();" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow cursor-pointer">Close Assistance</button>
-        </div>
-        `;
-    }
-
-    // -------------------------------------------------------------
-    // LEFT GRAPHIC A: HOW TO LOGIN
-    // -------------------------------------------------------------
-    function renderLeftLoginGraphic() {
-        return `
-        <div class="relative z-10 space-y-6 my-auto">
-            <div class="text-center space-y-1">
-                <p class="text-xs font-bold uppercase tracking-widest text-blue-200">Welcome to StatSkill AI</p>
-                <h2 class="text-2xl sm:text-3xl font-black text-white font-sans">
-                    How To Log<span class="border-b-4 border-orange-400 pb-0.5">in</span>
-                </h2>
-            </div>
-            <div class="space-y-4 pt-2">
-                <div class="flex items-start gap-3.5 bg-white/10 p-4 rounded-2xl border border-white/15 backdrop-blur-xs">
-                    <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-lg flex-shrink-0 shadow-md">!</div>
-                    <div class="space-y-1 text-xs">
-                        <div class="font-bold text-orange-300">Official Credentials Login:</div>
-                        <ul class="space-y-1 text-slate-200 text-[11px] list-disc list-inside">
-                            <li>Enter your registered email address</li>
-                            <li>Enter your secure account password</li>
-                            <li>Verify the alphanumeric security code</li>
-                        </ul>
-                    </div>
+                <div class="flex items-center gap-2 text-blue-100">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span>AI-curated learning pathways & gap analysis</span>
                 </div>
-                <div class="flex items-start gap-3.5 bg-white/10 p-4 rounded-2xl border border-white/15 backdrop-blur-xs">
-                    <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0 shadow-md">
-                        <i class="fa-solid fa-key"></i>
-                    </div>
-                    <div class="space-y-1 text-xs">
-                        <div class="font-bold text-amber-300">Parichay / JanParichay SSO:</div>
-                        <ul class="space-y-1 text-slate-200 text-[11px] list-disc list-inside">
-                            <li>Select Parichay from provider SSO options</li>
-                            <li>Authenticate using your Government SSO credentials</li>
-                        </ul>
-                    </div>
+                <div class="flex items-center gap-2 text-blue-100">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span>Single Sign-On (Parichay & JanParichay) support</span>
                 </div>
             </div>
         </div>
         <div class="relative z-10 pt-4 border-t border-white/10 flex justify-between items-center text-[10px] text-slate-300 font-semibold">
             <span>StatSkill AI • MoSPI Capacity Building</span>
-            <span>WCAG 2.1 AA Compliant</span>
+            <button onclick="store.openNodalModal()" class="text-amber-300 font-bold underline cursor-pointer">Need Help?</button>
         </div>
         `;
     }
 
-    // -------------------------------------------------------------
-    // LEFT GRAPHIC B: HOW TO REGISTER
-    // -------------------------------------------------------------
-    function renderLeftRegisterGraphic(step) {
+    function renderLeftRegisterHero() {
         return `
         <div class="relative z-10 space-y-6 my-auto">
             <div class="text-center space-y-1">
@@ -509,7 +498,7 @@
                 </div>
                 <div class="p-3.5 bg-white/10 border border-white/15 rounded-2xl text-center space-y-1.5 backdrop-blur-xs">
                     <div class="w-8 h-8 rounded-full bg-orange-400 text-white mx-auto flex items-center justify-center text-sm font-bold shadow">2</div>
-                    <p class="text-[11px] text-slate-200 leading-snug">Enter email to activate the Send OTP button</p>
+                    <p class="text-[11px] text-slate-200 leading-snug">Enter 10-digit mobile number for SMS OTP code</p>
                 </div>
                 <div class="p-3.5 bg-white/10 border border-white/15 rounded-2xl text-center space-y-1.5 backdrop-blur-xs">
                     <div class="w-8 h-8 rounded-full bg-orange-500 text-white mx-auto flex items-center justify-center text-sm font-bold shadow">3</div>
@@ -521,18 +510,23 @@
                 </div>
             </div>
         </div>
-        <div class="relative z-10 pt-4 border-t border-white/10 flex justify-between items-center text-[10px] text-slate-300 font-semibold">
-            <span>StatSkill AI • MoSPI Capacity Building</span>
-            <button onclick="store.openNodalModal()" class="text-amber-300 font-bold underline cursor-pointer">Need Nodal Help?</button>
-        </div>
         `;
     }
 
     // -------------------------------------------------------------
-    // RIGHT FORM A: RETURNING USER LOGIN TAB
+    // RIGHT FORM A: RETURNING USER LOGIN TAB (WITH 2-STEP OTP)
     // -------------------------------------------------------------
     function renderLoginForm(state) {
-        const canLogin = authState.loginEmail && authState.loginPassword && isRobotChecked && !authState.isLoggingIn;
+        if (state.loginStep === 2) {
+            return renderLoginStep2(state);
+        }
+        return renderLoginStep1(state);
+    }
+
+    function renderLoginStep1(state) {
+        const isOtpMode = state.loginMode === 'otp';
+        const isMobileValid = isValidMobile(state.loginEmail);
+        const canSendLoginOtp = (isOtpMode ? isMobileValid : (state.loginEmail && state.loginPassword)) && isRobotChecked && !state.isSendingLoginOtp;
 
         return `
         <div class="space-y-4 my-auto max-w-md mx-auto w-full">
@@ -547,7 +541,6 @@
                         <span class="text-2xl font-black tracking-tight text-slate-900 font-sans" style="color:#0B2545;">StatSkill <span class="text-blue-600">AI</span></span>
                         <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">MoSPI National Portal</div>
                     </div>
-                    </div>
                 </div>
             </div>
 
@@ -555,77 +548,67 @@
                 <span class="text-blue-700 font-extrabold text-sm">Official Account Login</span>
             </div>
 
+            <!-- Login Mode Switcher (Mobile OTP vs Password) -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+                <button type="button" onclick="setLoginMode('otp')" class="py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${isOtpMode ? 'bg-white text-blue-700 shadow-xs ring-1 ring-slate-200 font-black' : 'text-slate-600 hover:text-slate-900'}">
+                    <i class="fa-solid fa-mobile-screen-button text-xs"></i>
+                    <span>Mobile SMS OTP</span>
+                </button>
+                <button type="button" onclick="setLoginMode('password')" class="py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${!isOtpMode ? 'bg-white text-blue-700 shadow-xs ring-1 ring-slate-200 font-black' : 'text-slate-600 hover:text-slate-900'}">
+                    <i class="fa-solid fa-key text-xs"></i>
+                    <span>Password + OTP</span>
+                </button>
+            </div>
+
             <!-- Login Form Error Notice -->
-            <div id="loginErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${authState.loginError ? '' : 'hidden'}">
+            <div id="loginErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${state.loginError ? '' : 'hidden'}">
                 <i class="fa-solid fa-circle-exclamation text-sm text-red-600 flex-shrink-0"></i>
-                <span id="loginErrorText" class="font-semibold">${authState.loginError || ''}</span>
+                <span id="loginErrorText" class="font-semibold">${state.loginError || ''}</span>
             </div>
 
             <form onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
                 
-                <!-- Email / Mobile Field -->
+                <!-- Identifier Field -->
                 <div class="space-y-1">
-                    <label class="block text-xs font-bold text-slate-700">Official Email or 10-Digit Mobile Number <span class="text-red-500">*</span></label>
-                    <input id="loginEmail" type="text" required value="${authState.loginEmail}" oninput="updateLoginState()" placeholder="e.g. 9876543210 or officer@nic.in" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-700">
+                            ${isOtpMode ? '10-Digit Mobile Number (for SMS OTP)' : '10-Digit Mobile or Official Email'} <span class="text-red-500">*</span>
+                        </label>
+                        ${isOtpMode ? `<span id="loginMobileCountBadge" class="text-[10px] font-semibold ${isMobileValid ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${(state.loginEmail || '').length}/10 digits</span>` : ''}
+                    </div>
+                    ${isOtpMode ? `
+                    <div class="flex items-center">
+                        <span class="inline-flex items-center px-3 py-2.5 rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 text-slate-700 font-bold text-xs">
+                            🇮🇳 +91
+                        </span>
+                        <input id="loginEmail" type="tel" maxLength="10" required value="${state.loginEmail}" oninput="handleLoginMobileChange(this.value)" placeholder="Enter 10-digit mobile (e.g. 9876543210)" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    </div>
+                    ` : `
+                    <input id="loginEmail" type="text" required value="${state.loginEmail}" oninput="updateLoginState()" placeholder="e.g. 9876543210 or officer@nic.in" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    `}
                 </div>
 
-                <!-- Password Field -->
+                <!-- Password Field (Only in password mode) -->
+                ${!isOtpMode ? `
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700">Password <span class="text-red-500">*</span></label>
                     </div>
                     <div class="relative">
-                        <input id="loginPassword" type="password" required value="${authState.loginPassword}" oninput="updateLoginState()" placeholder="••••••••••••" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 pr-10">
+                        <input id="loginPassword" type="password" required value="${state.loginPassword}" oninput="updateLoginState()" placeholder="••••••••••••" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 pr-10">
                         <button type="button" onclick="togglePasswordVisibility('loginPassword', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
                 </div>
+                ` : ''}
 
-                <!-- DUAL SECURITY VERIFICATION (Enter CAPTCHA Code OR 1-Click "I'm not a robot") -->
-                <div class="space-y-1.5 pt-0.5">
-                    <label class="block text-xs font-bold text-slate-700">Security Verification <span class="text-red-500">*</span></label>
-                    <div class="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-2">
-                        
-                        <!-- CAPTCHA Display Card with Mixed Case + Refresh + Audio -->
-                        <div class="flex items-center justify-between bg-slate-900 px-3.5 py-2 rounded-lg border border-slate-700 shadow-inner">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">CAPTCHA:</span>
-                                <span class="captchaCodeDisplay text-amber-400 font-mono font-black text-base tracking-widest select-none">${currentCaptchaCode}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button type="button" onclick="playAudioCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Listen to CAPTCHA">
-                                    <i class="fa-solid fa-volume-high"></i>
-                                </button>
-                                <button type="button" onclick="refreshCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Generate New CAPTCHA">
-                                    <i class="fa-solid fa-rotate-right"></i>
-                                </button>
-                            </div>
-                        </div>
+                <!-- INTUITIVE SECURITY CAPTCHA COMPONENT -->
+                ${renderCaptchaComponent('login')}
 
-                        <!-- Two-way verification: Type CAPTCHA Code OR Click "I'm not a robot" -->
-                        <div class="flex flex-col sm:flex-row items-center gap-2">
-                            <div class="relative flex-1 w-full">
-                                <input type="text" id="loginCaptchaInput" placeholder="Enter CAPTCHA code" oninput="handleCaptchaInputChange(this.value, 'login')" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-blue-600 pr-20">
-                                <div id="loginCaptchaBadge" class="${isRobotChecked ? '' : 'hidden'} absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300">
-                                    <i class="fa-solid fa-circle-check text-xs"></i> <span>Verified</span>
-                                </div>
-                            </div>
-                            <button type="button" onclick="quickVerifyRobot('login')" id="loginQuickVerifyBtn" class="w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${isRobotChecked ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs'}">
-                                <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
-                                <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
-                            </button>
-                        </div>
-
-                        <div id="loginCaptchaError" class="text-[11px] text-red-600 font-semibold hidden">
-                            <i class="fa-solid fa-circle-exclamation"></i> Security verification required.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Main Login Button -->
-                <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 ${canLogin ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md' : 'bg-slate-300 cursor-pointer'} text-white font-bold rounded-lg text-sm transition-all flex items-center justify-center gap-2">
-                    <span id="loginBtnText">${authState.isLoggingIn ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...' : 'Log In'}</span>
+                <!-- Main Login / Send OTP Button -->
+                <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 ${canSendLoginOtp ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md' : 'bg-slate-300 cursor-pointer'} text-white font-bold rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                    <span id="loginBtnText">${state.isSendingLoginOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching Login OTP...' : (isOtpMode ? 'Send Login OTP via SMS →' : 'Continue with OTP Verification →')}</span>
                 </button>
             </form>
 
@@ -645,12 +628,101 @@
                     </select>
                 </div>
             </div>
+        </div>
+        `;
+    }
 
-            <!-- Footer Toggle to Register -->
-            <div class="text-center text-xs font-bold text-slate-600 pt-1">
-                Don't have an account yet? 
-                <button type="button" onclick="switchTab('register')" class="text-[#0077d6] hover:underline font-extrabold cursor-pointer">Register here</button>
+    // LOGIN STEP 2: ENTER LOGIN OTP
+    function renderLoginStep2(state) {
+        const isOtpFilled = (state.loginOtp || '').trim().length === 6;
+        const canVerify = isOtpFilled && !state.isVerifyingLoginOtp;
+        const targetDisplay = state.loginMobile ? `+91 ${state.loginMobile}` : (state.loginEmail || 'your phone');
+
+        return `
+        <div class="space-y-4 my-auto max-w-md mx-auto w-full">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="goToLoginStep(1)" class="text-slate-600 hover:text-slate-900 text-base cursor-pointer">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-xl sm:text-2xl font-black text-slate-900 font-sans">Login Verification</h2>
+                </div>
+                <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">2-Factor Auth</span>
             </div>
+
+            <!-- Real-time SMS OTP Dispatch Card -->
+            <div class="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-2 shadow-2xs">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 font-bold text-blue-900 text-xs">
+                        <i class="fa-solid fa-mobile-screen-button text-blue-600"></i>
+                        <span>Login OTP Dispatched</span>
+                    </div>
+                    ${state.loginDemoOtp ? `<span class="bg-blue-600 text-white font-mono text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs tracking-wider">CODE: ${state.loginDemoOtp}</span>` : ''}
+                </div>
+                <div class="text-[11px] text-slate-700 leading-relaxed">
+                    Official 6-digit Login OTP sent via SMS to <strong>${targetDisplay}</strong>.
+                </div>
+                
+                ${state.loginDemoOtp ? `
+                <div class="pt-0.5 flex items-center gap-2">
+                    <button type="button" onclick="quickFillLoginOtp('${state.loginDemoOtp}')" class="text-[11px] font-bold text-blue-700 bg-white hover:bg-blue-100 border border-blue-300 px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Auto-Fill Code (${state.loginDemoOtp})
+                    </button>
+                    <span class="text-[10px] text-slate-500 font-medium">(or enter manually below)</span>
+                </div>
+                ` : ''}
+            </div>
+
+            <!-- Error Notice with Clear & Retry -->
+            <div id="loginStep2ErrorNotice" class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex flex-col gap-2 animate-shake ${state.loginStep2Error ? '' : 'hidden'}">
+                <div class="flex items-center gap-2 font-bold text-red-800">
+                    <i class="fa-solid fa-circle-exclamation text-base text-red-600 flex-shrink-0"></i>
+                    <span id="loginStep2ErrorText">${state.loginStep2Error || 'Invalid OTP code entered. Please try again.'}</span>
+                </div>
+                <div class="flex items-center gap-2 pt-1 border-t border-red-100">
+                    <button type="button" onclick="clearAndRetryLoginOtp()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> Clear & Re-enter OTP
+                    </button>
+                    <span class="text-[11px] text-slate-600">Please re-enter the code and try again.</span>
+                </div>
+            </div>
+
+            <form onsubmit="event.preventDefault(); handleLoginVerifyOtp();" class="space-y-4">
+                
+                <!-- 6-Digit Monospace OTP Input Box -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-700">Enter 6-Digit Login OTP <span class="text-red-500">*</span></label>
+                        <span id="loginOtpCharCount" class="text-[10px] font-bold ${(state.loginOtp || '').length === 6 ? 'text-emerald-600' : 'text-slate-400'}">${(state.loginOtp || '').length}/6 digits</span>
+                    </div>
+                    <input id="loginOtpInput" type="text" maxLength="6" required value="${state.loginOtp}" oninput="handleLoginOtpInputChange(this.value)" placeholder="• • • • • •" class="w-full px-3.5 py-3 bg-white border ${state.loginStep2Error ? 'border-red-500 ring-2 ring-red-200' : 'border-blue-400'} rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner">
+                </div>
+
+                <!-- Resend Timer & Actions -->
+                <div class="flex items-center justify-between text-xs pt-1">
+                    <div id="loginResendTimerContainer">
+                        ${state.loginResendTimer > 0 ? `
+                            <span id="loginResendTimerDisplay" class="text-slate-500 font-medium"><i class="fa-regular fa-clock"></i> Resend OTP in ${state.loginResendTimer}s</span>
+                        ` : `
+                            <button type="button" onclick="handleResendLoginOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Resend Login OTP</button>
+                        `}
+                    </div>
+                    <button type="button" onclick="goToLoginStep(1)" class="text-slate-500 hover:text-slate-800 text-[11px] font-semibold underline cursor-pointer">Change Number / Email</button>
+                </div>
+
+                <!-- Submit & Back Buttons -->
+                <div class="flex items-center justify-between pt-2">
+                    <button type="button" onclick="goToLoginStep(1)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-left text-xs"></i> Back
+                    </button>
+                    <button type="submit" id="loginVerifyBtn" ${!canVerify ? 'disabled' : ''} class="px-6 py-2.5 ${canVerify ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md' : 'bg-slate-300 cursor-not-allowed'} text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-2">
+                        <span id="loginVerifyBtnText">${state.isVerifyingLoginOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...' : 'Verify & Log In →'}</span>
+                    </button>
+                </div>
+
+            </form>
         </div>
         `;
     }
@@ -930,6 +1002,9 @@
     // -------------------------------------------------------------
     // STEP 3: CREATE PASSWORD & CAPTCHA
     // -------------------------------------------------------------
+    // -------------------------------------------------------------
+    // STEP 3: CREATE PASSWORD & CAPTCHA
+    // -------------------------------------------------------------
     function renderStep3() {
         const pwd = authState.password || '';
         const cpwd = authState.confirmPassword || '';
@@ -947,7 +1022,7 @@
             
             <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
                 <i class="fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0"></i>
-                <span>Mobile <strong>${verifiedDisplay}</strong> verified! Create your account password.</span>
+                <span>Mobile <strong>${verifiedDisplay}</strong> verified! Create your official account password.</span>
             </div>
 
             <div id="step3ErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${authState.step3Error ? '' : 'hidden'}">
@@ -997,46 +1072,8 @@
                 </div>
             </div>
 
-            <!-- DUAL SECURITY VERIFICATION (Enter CAPTCHA Code OR 1-Click "I'm not a robot") -->
-            <div class="space-y-1.5 pt-0.5">
-                <label class="block text-xs font-bold text-slate-700">Security Verification <span class="text-red-500">*</span></label>
-                <div class="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-2">
-                    
-                    <!-- CAPTCHA Display Card with Mixed Case + Refresh + Audio -->
-                    <div class="flex items-center justify-between bg-slate-900 px-3.5 py-2 rounded-lg border border-slate-700 shadow-inner">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">CAPTCHA:</span>
-                            <span class="captchaCodeDisplay text-amber-400 font-mono font-black text-base tracking-widest select-none">${currentCaptchaCode}</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <button type="button" onclick="playAudioCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Listen to CAPTCHA">
-                                <i class="fa-solid fa-volume-high"></i>
-                            </button>
-                            <button type="button" onclick="refreshCaptcha()" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-md text-xs cursor-pointer transition-colors" title="Generate New CAPTCHA">
-                                <i class="fa-solid fa-rotate-right"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Two-way verification: Type CAPTCHA Code OR Click "I'm not a robot" -->
-                    <div class="flex flex-col sm:flex-row items-center gap-2">
-                        <div class="relative flex-1 w-full">
-                            <input type="text" id="regCaptchaInput" placeholder="Enter CAPTCHA code" oninput="handleCaptchaInputChange(this.value, 'register')" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-blue-600 pr-20">
-                            <div id="regCaptchaBadge" class="${isRobotChecked ? '' : 'hidden'} absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300">
-                                <i class="fa-solid fa-circle-check text-xs"></i> <span>Verified</span>
-                            </div>
-                        </div>
-                        <button type="button" onclick="quickVerifyRobot('register')" id="regQuickVerifyBtn" class="w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${isRobotChecked ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs'}">
-                            <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
-                            <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
-                        </button>
-                    </div>
-
-                    <div id="regCaptchaError" class="text-[11px] text-red-600 font-semibold hidden">
-                        <i class="fa-solid fa-circle-exclamation"></i> Security verification required.
-                    </div>
-                </div>
-            </div>
+            <!-- SECURITY CAPTCHA COMPONENT -->
+            ${renderCaptchaComponent('register')}
 
             <!-- Complete Registration Button -->
             <div class="flex items-center justify-between pt-2">
@@ -1411,6 +1448,113 @@
         }
     };
 
+    // -------------------------------------------------------------
+    // LOGIN FORM HANDLERS (OTP + 2FA)
+    // -------------------------------------------------------------
+
+    window.setLoginMode = function(mode) {
+        authState.loginMode = mode;
+        authState.loginError = null;
+        authState.loginStep2Error = null;
+        authState.loginEmail = '';
+        authState.loginPassword = '';
+        authState.loginOtp = '';
+        currentCaptchaCode = generateCaptchaCode();
+        isRobotChecked = false;
+        if (window.store) window.store.notify();
+    };
+
+    window.handleLoginMobileChange = function(val) {
+        const clean = (val || '').replace(/\D/g, '').slice(0, 10);
+        authState.loginEmail = clean;
+        const input = document.getElementById('loginEmail');
+        if (input && input.value !== clean) input.value = clean;
+
+        const badge = document.getElementById('loginMobileCountBadge');
+        if (badge) {
+            badge.textContent = `${clean.length}/10 digits`;
+            badge.className = clean.length === 10 ? "text-[10px] font-bold text-emerald-600" : "text-[10px] font-semibold text-slate-400";
+        }
+        updateLoginState();
+    };
+
+    window.goToLoginStep = function(step) {
+        authState.loginStep = step;
+        authState.loginError = null;
+        authState.loginStep2Error = null;
+        if (step === 1) {
+            currentCaptchaCode = generateCaptchaCode();
+            isRobotChecked = false;
+        }
+        if (window.store) window.store.notify();
+    };
+
+    window.quickFillLoginOtp = function(code) {
+        const otpEl = document.getElementById('loginOtpInput');
+        if (otpEl) {
+            otpEl.value = code;
+            authState.loginOtp = code;
+            authState.loginStep2Error = null;
+            const errNotice = document.getElementById('loginStep2ErrorNotice');
+            if (errNotice) errNotice.classList.add('hidden');
+            otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
+            updateLoginStep2State();
+        }
+    };
+
+    window.clearAndRetryLoginOtp = function() {
+        authState.loginOtp = '';
+        authState.loginStep2Error = null;
+        const otpEl = document.getElementById('loginOtpInput');
+        if (otpEl) {
+            otpEl.value = '';
+            otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
+            otpEl.focus();
+        }
+        const errNotice = document.getElementById('loginStep2ErrorNotice');
+        if (errNotice) errNotice.classList.add('hidden');
+        updateLoginStep2State();
+    };
+
+    window.handleLoginOtpInputChange = function(val) {
+        const clean = (val || '').replace(/\D/g, '').slice(0, 6);
+        authState.loginOtp = clean;
+        const otpEl = document.getElementById('loginOtpInput');
+        if (otpEl && otpEl.value !== clean) otpEl.value = clean;
+
+        const countEl = document.getElementById('loginOtpCharCount');
+        if (countEl) {
+            countEl.textContent = `${clean.length}/6 digits`;
+            countEl.className = clean.length === 6 ? "text-[10px] font-bold text-emerald-600" : "text-[10px] font-bold text-slate-400";
+        }
+
+        if (authState.loginStep2Error) {
+            authState.loginStep2Error = null;
+            const errNotice = document.getElementById('loginStep2ErrorNotice');
+            if (errNotice) errNotice.classList.add('hidden');
+            if (otpEl) {
+                otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
+            }
+        }
+
+        updateLoginStep2State();
+    };
+
+    function updateLoginStep2State() {
+        const otpEl = document.getElementById('loginOtpInput');
+        const btn = document.getElementById('loginVerifyBtn');
+        if (!otpEl || !btn) return;
+
+        let otp = (authState.loginOtp || '').replace(/\D/g, '').slice(0, 6);
+        if (otp.length === 6 && !authState.isVerifyingLoginOtp) {
+            btn.removeAttribute('disabled');
+            btn.className = "px-6 py-2.5 bg-[#0077d6] hover:bg-[#0066cc] text-white font-bold rounded-lg text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2";
+        } else {
+            btn.setAttribute('disabled', 'true');
+            btn.className = "px-6 py-2.5 bg-slate-300 text-white font-bold rounded-lg text-xs shadow-md transition-all cursor-not-allowed flex items-center justify-center gap-2";
+        }
+    }
+
     window.updateLoginState = function() {
         const emailEl = document.getElementById('loginEmail');
         const pwdEl = document.getElementById('loginPassword');
@@ -1422,11 +1566,15 @@
         authState.loginEmail = email;
         authState.loginPassword = pwd;
 
+        const isOtpMode = authState.loginMode === 'otp';
+        const isMobileValid = isValidMobile(email);
+        const canSubmit = (isOtpMode ? isMobileValid : (email !== '' && pwd !== '')) && isRobotChecked && !authState.isSendingLoginOtp;
+
         if (btn) {
-            if (email !== '' && pwd !== '' && isRobotChecked && !authState.isLoggingIn) {
+            if (canSubmit) {
                 btn.className = "w-full py-2.5 bg-[#0077d6] hover:bg-[#0066cc] text-white font-bold rounded-lg text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2";
             } else {
-                btn.className = "w-full py-2.5 bg-[#0077d6] hover:bg-[#0066cc] text-white font-bold rounded-lg text-sm shadow transition-all cursor-pointer flex items-center justify-center gap-2";
+                btn.className = "w-full py-2.5 bg-slate-300 text-white font-bold rounded-lg text-sm shadow transition-all cursor-pointer flex items-center justify-center gap-2";
             }
         }
     };
@@ -1444,7 +1592,7 @@
     // API ACTIONS & SUBMISSIONS
     // -------------------------------------------------------------
 
-    // Step 1: Send OTP Submit Handler
+    // Step 1: Send Registration OTP Submit Handler
     window.handleStep1Submit = function() {
         const nameInput = document.getElementById('regFullName');
         const minSelect = document.getElementById('regMinistrySelect');
@@ -1463,7 +1611,6 @@
         const isPriorValid = isAllPriorFilled();
         const isMobileValid = isValidMobile(authState.mobile);
 
-        // STRICT GUARD CLAUSE
         if (!isPriorValid || !isMobileValid) {
             const errNotice = document.getElementById('step1ErrorNotice');
             const errText = document.getElementById('step1ErrorText');
@@ -1567,7 +1714,7 @@
         handleStep1Submit();
     };
 
-    // Step 2: Verify OTP
+    // Step 2: Verify Registration OTP
     window.handleStep2Verify = function() {
         if (authState.otp.length !== 6) {
             const errNotice = document.getElementById('step2ErrorNotice');
@@ -1628,7 +1775,7 @@
     window.handleStep3Register = function() {
         const pwdEl = document.getElementById('regPassword');
         const cpwdEl = document.getElementById('regConfirmPassword');
-        const regErr = document.getElementById('regCaptchaError');
+        const regErr = document.getElementById('registerCaptchaError');
 
         authState.password = pwdEl ? pwdEl.value : authState.password;
         authState.confirmPassword = cpwdEl ? cpwdEl.value : authState.confirmPassword;
@@ -1637,7 +1784,7 @@
             if (regErr) regErr.classList.remove('hidden');
             const errNotice = document.getElementById('step3ErrorNotice');
             const errText = document.getElementById('step3ErrorText');
-            if (errText) errText.textContent = "Please enter the CAPTCHA code or click \"I'm not a robot\".";
+            if (errText) errText.textContent = "Please enter the characters shown in the CAPTCHA box.";
             if (errNotice) errNotice.classList.remove('hidden');
             return;
         }
@@ -1717,7 +1864,9 @@
         });
     };
 
-    // Returning User Login Submit
+    // -------------------------------------------------------------
+    // LOGIN STEP 1: DISPATCH LOGIN OTP VIA SMS
+    // -------------------------------------------------------------
     window.handleLoginSubmit = function() {
         const emailEl = document.getElementById('loginEmail');
         const pwdEl = document.getElementById('loginPassword');
@@ -1726,40 +1875,117 @@
         authState.loginEmail = emailEl ? emailEl.value.trim() : '';
         authState.loginPassword = pwdEl ? pwdEl.value : '';
 
-        if (!authState.loginEmail || !authState.loginPassword) {
-            const errNotice = document.getElementById('loginErrorNotice');
-            const errText = document.getElementById('loginErrorText');
-            if (errText) errText.textContent = "Please enter your mobile/email and password.";
-            if (errNotice) errNotice.classList.remove('hidden');
-            return;
+        const isOtpMode = authState.loginMode === 'otp';
+
+        if (isOtpMode) {
+            if (!isValidMobile(authState.loginEmail)) {
+                const errNotice = document.getElementById('loginErrorNotice');
+                const errText = document.getElementById('loginErrorText');
+                if (errText) errText.textContent = "Please enter a valid 10-digit Indian mobile number.";
+                if (errNotice) errNotice.classList.remove('hidden');
+                return;
+            }
+        } else {
+            if (!authState.loginEmail || !authState.loginPassword) {
+                const errNotice = document.getElementById('loginErrorNotice');
+                const errText = document.getElementById('loginErrorText');
+                if (errText) errText.textContent = "Please enter your mobile/email and password.";
+                if (errNotice) errNotice.classList.remove('hidden');
+                return;
+            }
         }
 
         if (!isRobotChecked) {
             if (loginErr) loginErr.classList.remove('hidden');
             const errNotice = document.getElementById('loginErrorNotice');
             const errText = document.getElementById('loginErrorText');
-            if (errText) errText.textContent = "Please enter the CAPTCHA code or click \"I'm not a robot\".";
+            if (errText) errText.textContent = "Please enter the characters shown in the CAPTCHA box.";
             if (errNotice) errNotice.classList.remove('hidden');
             return;
         }
 
-        authState.isLoggingIn = true;
+        authState.isSendingLoginOtp = true;
         const btnText = document.getElementById('loginBtnText');
-        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...';
+        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching Login OTP...';
         updateLoginState();
 
-        fetch('/api/auth/login', {
+        fetch('/api/auth/login-send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 identifier: authState.loginEmail,
-                email: authState.loginEmail,
-                password: authState.loginPassword
+                password: authState.loginPassword,
+                passwordless: isOtpMode
             })
         })
         .then(res => res.json())
         .then(data => {
-            authState.isLoggingIn = false;
+            authState.isSendingLoginOtp = false;
+            if (data.success) {
+                authState.loginDemoOtp = data.otp || '';
+                authState.loginMobile = data.mobile || authState.loginEmail;
+                authState.loginStep = 2;
+                authState.loginOtp = '';
+                authState.loginStep2Error = null;
+                if (window.store) window.store.notify();
+                startLoginResendTimer();
+            } else {
+                const errNotice = document.getElementById('loginErrorNotice');
+                const errText = document.getElementById('loginErrorText');
+                if (errText) errText.textContent = data.error || "Login verification failed. Please try again.";
+                if (errNotice) errNotice.classList.remove('hidden');
+                refreshCaptcha();
+                updateLoginState();
+            }
+        })
+        .catch(err => {
+            authState.isSendingLoginOtp = false;
+            const errNotice = document.getElementById('loginErrorNotice');
+            const errText = document.getElementById('loginErrorText');
+            if (errText) errText.textContent = "Network error connecting to authentication server.";
+            if (errNotice) errNotice.classList.remove('hidden');
+            refreshCaptcha();
+            updateLoginState();
+        });
+    };
+
+    window.handleResendLoginOtp = function() {
+        if (authState.loginResendTimer > 0) return;
+        const otpInput = document.getElementById('loginOtpInput');
+        if (otpInput) otpInput.value = '';
+        authState.loginOtp = '';
+        authState.loginStep2Error = null;
+        handleLoginSubmit();
+    };
+
+    // -------------------------------------------------------------
+    // LOGIN STEP 2: VERIFY LOGIN OTP & AUTHENTICATE
+    // -------------------------------------------------------------
+    window.handleLoginVerifyOtp = function() {
+        if (authState.loginOtp.length !== 6) {
+            const errNotice = document.getElementById('loginStep2ErrorNotice');
+            const errText = document.getElementById('loginStep2ErrorText');
+            if (errText) errText.textContent = "Please enter all 6 digits of the Login OTP.";
+            if (errNotice) errNotice.classList.remove('hidden');
+            return;
+        }
+
+        authState.isVerifyingLoginOtp = true;
+        const btnText = document.getElementById('loginVerifyBtnText');
+        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...';
+        updateLoginStep2State();
+
+        fetch('/api/auth/login-verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                identifier: authState.loginEmail,
+                otp: authState.loginOtp
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            authState.isVerifyingLoginOtp = false;
             if (data.success && data.user) {
                 if (window.store) {
                     const target = window.store.state.pendingRedirectView || 'learner-dash';
@@ -1771,22 +1997,28 @@
                     window.store.navigate(target);
                 }
             } else {
-                const errNotice = document.getElementById('loginErrorNotice');
-                const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = data.error || "Invalid mobile/email or password. Please try again.";
+                authState.loginStep2Error = data.error || "Invalid Login OTP code entered. Please try again.";
+                const errNotice = document.getElementById('loginStep2ErrorNotice');
+                const errText = document.getElementById('loginStep2ErrorText');
+                if (errText) errText.textContent = authState.loginStep2Error;
                 if (errNotice) errNotice.classList.remove('hidden');
-                refreshCaptcha();
-                updateLoginState();
+
+                const otpInput = document.getElementById('loginOtpInput');
+                if (otpInput) {
+                    otpInput.className = "w-full px-3.5 py-3 bg-red-50 border-2 border-red-500 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-red-600 shadow-inner animate-shake";
+                    otpInput.focus();
+                }
+                updateLoginStep2State();
             }
         })
         .catch(err => {
-            authState.isLoggingIn = false;
-            const errNotice = document.getElementById('loginErrorNotice');
-            const errText = document.getElementById('loginErrorText');
-            if (errText) errText.textContent = "Network error logging in.";
+            authState.isVerifyingLoginOtp = false;
+            authState.loginStep2Error = "Network error verifying Login OTP.";
+            const errNotice = document.getElementById('loginStep2ErrorNotice');
+            const errText = document.getElementById('loginStep2ErrorText');
+            if (errText) errText.textContent = authState.loginStep2Error;
             if (errNotice) errNotice.classList.remove('hidden');
-            refreshCaptcha();
-            updateLoginState();
+            updateLoginStep2State();
         });
     };
 
