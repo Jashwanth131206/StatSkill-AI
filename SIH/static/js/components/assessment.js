@@ -95,15 +95,16 @@ function getAssessmentStepHTML(step, user, state) {
         const desig = (typeof user.designation === 'object' && user.designation)
             ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
             : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
-        const exp = user.experienceYears || user.experience_years || 4;
-        const degree = user.degree || "M.Sc. Statistics";
-        const spec = user.specialization || "Survey Methodology & Mathematical Statistics";
-        const domains = user.statisticalDomains || user.statistical_domains || "Survey Design, Sampling, National Accounts, Price Statistics";
-        const tools = user.technicalQualifications || user.technical_qualifications || "Python, R, SPSS, Stata, SQL, PowerBI, Excel";
-        const prevRoles = user.previousRoles || user.previous_roles || "Statistical Investigator, Junior Statistical Officer";
-        const training = user.trainingProgrammes || user.training_programmes || "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)";
-        const assignment = user.currentAssignment || user.current_assignment || "Survey Design & Data Processing Division, PLFS & Consumer Expenditure";
-        const location = user.location || "Sankhyiki Bhawan, New Delhi";
+        const exp = (user.experienceYears !== undefined && user.experienceYears !== null) ? user.experienceYears : ((user.experience_years !== undefined && user.experience_years !== null) ? user.experience_years : '');
+        const degree = user.degree || "";
+        const spec = user.specialization || "";
+        const domains = user.statisticalDomains || user.statistical_domains || "";
+        const tools = user.technicalQualifications || user.technical_qualifications || "";
+        const prevRoles = user.previousRoles || user.previous_roles || "";
+        const training = user.trainingProgrammes || user.training_programmes || "";
+        const assignment = user.currentAssignment || user.current_assignment || "";
+        const location = user.location || "";
+        const projects = user.projectsHandled || user.projects_handled || "";
         const empId = user.employeeId || user.employee_id || 'ISS/2026/84920';
         const contactInfo = user.mobile ? `+91 ${user.mobile} • ${user.email || ''}` : (user.email || 'officer@gov.nic.in');
 
@@ -116,7 +117,7 @@ function getAssessmentStepHTML(step, user, state) {
                 <div class="text-xs space-y-1">
                     <span class="font-extrabold text-blue-900 text-sm">Block 1 — Official Digital Competency Profile</span>
                     <p class="text-slate-600 leading-relaxed">
-                        Your official cadre hierarchy (Name, Cadre ID, Ministry, Department, Designation) is authenticated from your registration credentials. Complete your posting and statistical domain experience below to personalize AI questions.
+                        Please fill in your workplace posting, educational background, prior training, and domain experience below. This information will personalize your assessment questions and learning path.
                     </p>
                 </div>
             </div>
@@ -149,7 +150,7 @@ function getAssessmentStepHTML(step, user, state) {
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Official Name</label>
                         <div class="relative">
-                            <input type="text" id="prof_name" value="${user.name || 'Statistical Officer'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <input type="text" id="prof_name" value="${user.name || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
@@ -163,21 +164,21 @@ function getAssessmentStepHTML(step, user, state) {
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Ministry / Administration</label>
                         <div class="relative">
-                            <input type="text" id="prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <input type="text" id="prof_ministry" value="${user.ministry || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Ministry of Statistics & Programme Implementation">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Department / Division</label>
                         <div class="relative">
-                            <input type="text" id="prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <input type="text" id="prof_dept" value="${user.department || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. National Statistical Office (NSO - SDRD)">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Designation / Role</label>
                         <div class="relative">
-                            <input type="text" id="prof_desig" value="${desig}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <input type="text" id="prof_desig" value="${desig}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Senior Statistical Officer (SSO)">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
@@ -191,47 +192,49 @@ function getAssessmentStepHTML(step, user, state) {
                 </div>
             </div>
 
-            <!-- 2. Posting & Current Statistical Assignment (EDITABLE) -->
+            <!-- 2. Posting & Current Statistical Assignment (USER INPUT) -->
             <div class="space-y-3">
                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
                     <i class="fa-solid fa-building-columns text-orange-500"></i> 2. Current Posting & Statistical Assignment
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Posting Office & Location</label>
-                        <input type="text" id="prof_location" value="${location}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Sankhyiki Bhawan, New Delhi">
+                        <label class="font-bold text-slate-700 block mb-1">Location of Workplace / Posting Office <span class="text-red-500">*</span></label>
+                        <input type="text" id="prof_location" value="${location}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Sankhyiki Bhawan, New Delhi or Regional Office, Pune">
                     </div>
                     <div class="sm:col-span-1">
                         <label class="font-bold text-slate-700 block mb-1">Current Survey & Statistical Assignment <span class="text-red-500">*</span></label>
-                        <input type="text" id="prof_assignment" value="${assignment}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Periodic Labour Force Survey (PLFS) & Consumer Expenditure">
+                        <input type="text" id="prof_assignment" value="${assignment}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Periodic Labour Force Survey (PLFS), National Accounts, Price Indices">
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Educational & Technical Qualifications (EDITABLE) -->
+            <!-- 3. Educational & Technical Qualifications (USER INPUT) -->
             <div class="space-y-3 pt-1">
                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
-                    <i class="fa-solid fa-graduation-cap text-orange-500"></i> 3. Educational & Technical Qualifications
+                    <i class="fa-solid fa-graduation-cap text-orange-500"></i> 3. Higher Education & Technical Qualifications
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Highest Degree <span class="text-red-500">*</span></label>
+                        <label class="font-bold text-slate-700 block mb-1">Higher Education / Highest Degree <span class="text-red-500">*</span></label>
                         <select id="prof_degree" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm">
-                            <option value="M.Sc. Statistics" ${degree.includes('M.Sc. Stat') ? 'selected' : ''}>M.Sc. Statistics</option>
-                            <option value="M.A. Economics / Econometrics" ${degree.includes('Econ') ? 'selected' : ''}>M.A. Economics / Econometrics</option>
-                            <option value="B.Tech / B.E. (Computer Science / Data Science)" ${degree.includes('Tech') ? 'selected' : ''}>B.Tech / B.E. (Data Science / IT)</option>
+                            <option value="" disabled ${!degree ? 'selected' : ''}>-- Select Highest Academic Degree --</option>
+                            <option value="M.Sc. Statistics" ${degree === 'M.Sc. Statistics' ? 'selected' : ''}>M.Sc. Statistics</option>
+                            <option value="M.A. Economics / Econometrics" ${degree.includes('Economics') || degree.includes('Econometrics') ? 'selected' : ''}>M.A. Economics / Econometrics</option>
+                            <option value="B.Tech / B.E. (Computer Science / Data Science)" ${degree.includes('Tech') || degree.includes('B.E.') ? 'selected' : ''}>B.Tech / B.E. (Data Science / IT)</option>
                             <option value="Ph.D. Statistics / Economics" ${degree.includes('Ph.D') ? 'selected' : ''}>Ph.D. Statistics / Economics</option>
                             <option value="B.Sc. Mathematics / Statistics" ${degree.includes('B.Sc') ? 'selected' : ''}>B.Sc. Mathematics / Statistics</option>
-                            <option value="MCA / Master in Data Analytics" ${degree.includes('MCA') ? 'selected' : ''}>MCA / Master in Data Analytics</option>
+                            <option value="MCA / Master in Data Analytics" ${degree.includes('MCA') || degree.includes('Analytics') ? 'selected' : ''}>MCA / Master in Data Analytics</option>
+                            <option value="Other Post Graduate Degree" ${degree.includes('Other') ? 'selected' : ''}>Other Post Graduate / Master Degree</option>
                         </select>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Specialization Area</label>
-                        <input type="text" id="prof_spec" value="${spec}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Sampling, Macroeconomics, Data Science">
+                        <label class="font-bold text-slate-700 block mb-1">Specialization / Subject Area</label>
+                        <input type="text" id="prof_spec" value="${spec}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Mathematical Statistics, Sampling, Econometrics, Data Science">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700 block mb-1">Statistical & Data Science Tools Known</label>
-                        <input type="text" id="prof_tools" value="${tools}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Python, R, SPSS, Stata, SQL, PowerBI, Excel">
+                        <input type="text" id="prof_tools" value="${tools}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="Type tools or click badges below (e.g. Python, R, SPSS, SQL, Excel)">
                         <div class="flex flex-wrap gap-1.5 pt-1.5">
                             ${['Python', 'R', 'SPSS', 'Stata', 'SQL', 'Power BI', 'Advanced Excel', 'GIS / QGIS'].map(t => `
                                 <button type="button" onclick="toggleToolBadge('${t}')" class="text-[11px] font-bold px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-slate-700 transition-all cursor-pointer">
@@ -243,7 +246,7 @@ function getAssessmentStepHTML(step, user, state) {
                 </div>
             </div>
 
-            <!-- 4. Experience & Statistical Domains (EDITABLE) -->
+            <!-- 4. Experience & Statistical Domains (USER INPUT) -->
             <div class="space-y-3 pt-1">
                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
                     <i class="fa-solid fa-briefcase text-orange-500"></i> 4. Experience & Statistical Domains
@@ -252,35 +255,36 @@ function getAssessmentStepHTML(step, user, state) {
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Years of Experience in Official Statistics <span class="text-red-500">*</span></label>
                         <select id="prof_exp" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm">
-                            <option value="1.5" ${exp < 2 ? 'selected' : ''}>0 - 2 Years (Junior / Induction Level)</option>
-                            <option value="4.0" ${exp >= 2 && exp < 6 ? 'selected' : ''}>3 - 5 Years (Mid-Level Practitioner)</option>
-                            <option value="8.0" ${exp >= 6 && exp < 12 ? 'selected' : ''}>6 - 10 Years (Senior Cadre Specialist)</option>
-                            <option value="15.0" ${exp >= 12 ? 'selected' : ''}>10+ Years (Leadership / Directorate Level)</option>
+                            <option value="" disabled ${exp === '' ? 'selected' : ''}>-- Select Total Years of Experience --</option>
+                            <option value="1.5" ${exp !== '' && exp < 2 ? 'selected' : ''}>0 - 2 Years (Junior / Induction Level)</option>
+                            <option value="4.0" ${exp !== '' && exp >= 2 && exp < 6 ? 'selected' : ''}>3 - 5 Years (Mid-Level Practitioner)</option>
+                            <option value="8.0" ${exp !== '' && exp >= 6 && exp < 12 ? 'selected' : ''}>6 - 10 Years (Senior Cadre Specialist)</option>
+                            <option value="15.0" ${exp !== '' && exp >= 12 ? 'selected' : ''}>10+ Years (Leadership / Directorate Level)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Previous Cadres / Roles</label>
-                        <input type="text" id="prof_prevRoles" value="${prevRoles}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Statistical Investigator, Junior Statistical Officer">
+                        <label class="font-bold text-slate-700 block mb-1">Previous Cadres / Roles Worked In</label>
+                        <input type="text" id="prof_prevRoles" value="${prevRoles}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Statistical Investigator, Junior Statistical Officer, Research Fellow">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700 block mb-1">Statistical Domains Worked In</label>
-                        <input type="text" id="prof_domains" value="${domains}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Survey Design, Sampling, National Accounts, Price Statistics">
+                        <input type="text" id="prof_domains" value="${domains}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Survey Design, Sampling, National Accounts, Price Indices, Economic Census">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700 block mb-1">Key Surveys / Projects Handled</label>
-                        <input type="text" id="prof_projects" value="${user.projectsHandled || user.projects_handled || 'Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES), Annual Survey of Industries (ASI)'}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm">
+                        <input type="text" id="prof_projects" value="${projects}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES), Annual Survey of Industries (ASI)">
                     </div>
                 </div>
             </div>
 
-            <!-- 5. Prior Training History (EDITABLE) -->
+            <!-- 5. Pre-Training History (USER INPUT) -->
             <div class="space-y-3 pt-1">
                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
-                    <i class="fa-solid fa-award text-orange-500"></i> 5. Training History & Academies Attended
+                    <i class="fa-solid fa-award text-orange-500"></i> 5. Prior Training History & Academies Attended
                 </h3>
                 <div class="space-y-2 text-xs">
-                    <label class="font-bold text-slate-700 block">Training Programmes / Academies Attended</label>
-                    <input type="text" id="prof_training" value="${training}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. NSSTA Greater Noida, Indian Statistical Institute (ISI), iGOT Karmayogi">
+                    <label class="font-bold text-slate-700 block">Pre-Training / Courses Attended</label>
+                    <input type="text" id="prof_training" value="${training}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. NSSTA Greater Noida (Survey Sampling), Indian Statistical Institute (ISI), iGOT Karmayogi, or None">
                 </div>
             </div>
         </div>
