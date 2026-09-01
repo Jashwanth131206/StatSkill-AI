@@ -193,5 +193,39 @@
     "overallScore": 68,
     "learningHours": 42.5,
     "registered_at": "2026-09-01 19:28:24"
+  },
+  "abcdef@gov.nic.in": {
+    "id": "usr_4f11d151d38f",
+    "email": "abcdef@gov.nic.in",
+    "mobile": "9999999098",
+    "name": "jjjjjjjjjj",
+    "ministry": "Ministry of Finance",
+    "department": "Economic Division (Economic Survey, Macro Forecasting & Modeling)",
+    "designation": "[object Object]",
+    "role": "[object Object]",
+    "employeeId": "SSS/2026/72211",
+    "org_type": "Central Government",
+    "password_hash": "8335aeb9973c71fd23d36fefd782cf2f2abfbabd656e2a0b4250a05065bc8fcf",
+    "salt": "2cd8694aecea2861ba39a767f19bf2fe",
+    "overallScore": 68,
+    "learningHours": 42.5,
+    "registered_at": "2026-09-01 22:33:30"
+  },
+  "abcddd@nic.gov.in": {
+    "id": "usr_6b2b5d8c2a98",
+    "email": "abcddd@nic.gov.in",
+    "mobile": "9488493929",
+    "name": "qqqqqqq",
+    "ministry": "Ministry of Finance",
+    "department": "Economic Division (Economic Survey, Macro Forecasting & Modeling)",
+    "designation": "[object Object]",
+    "role": "[object Object]",
+    "employeeId": "SSS/2026/88847",
+    "org_type": "Central Government",
+    "password_hash": "3a78f686ae87e8d824fa86a64d24758fdd414d348c17e9fe03983fa7c4d01b27",
+    "salt": "ecd9a8d640818385ec67c2f2e1d10ae6",
+    "overallScore": 68,
+    "learningHours": 42.5,
+    "registered_at": "2026-09-01 22:41:17"
   }
 }

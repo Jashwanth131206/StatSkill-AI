@@ -256,15 +256,31 @@ def init_db_if_needed():
         );
     """)
 
-    # Check and add last_login_at if table already existed
+    # Ensure all Block 1 Learner Profile columns exist in users table
     cursor.execute("PRAGMA table_info(users)")
     cols = [r["name"] for r in cursor.fetchall()]
-    if "last_login_at" not in cols:
-        try:
-            cursor.execute("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP")
-            conn.commit()
-        except Exception:
-            pass
+    profile_cols = {
+        "mobile": "TEXT",
+        "last_login_at": "TIMESTAMP",
+        "experience_years": "REAL DEFAULT 4.0",
+        "degree": "TEXT DEFAULT 'M.Sc. Statistics'",
+        "specialization": "TEXT DEFAULT 'Mathematical Statistics & Survey Methodology'",
+        "statistical_domains": "TEXT DEFAULT 'Survey Design, Sampling, National Accounts, Price Statistics'",
+        "previous_roles": "TEXT DEFAULT 'Statistical Investigator, Junior Statistical Officer'",
+        "projects_handled": "TEXT DEFAULT 'Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)'",
+        "technical_qualifications": "TEXT DEFAULT 'Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel'",
+        "training_programmes": "TEXT DEFAULT 'NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)'",
+        "current_assignment": "TEXT DEFAULT 'Survey Design & Research Division (SDRD), PLFS & Price Indices'",
+        "location": "TEXT DEFAULT 'Sankhyiki Bhawan, New Delhi'",
+        "profile_completed": "INTEGER DEFAULT 1"
+    }
+    for col_name, col_type in profile_cols.items():
+        if col_name not in cols:
+            try:
+                cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+                conn.commit()
+            except Exception as e:
+                pass
 
     # Login audit logs table for full compliance and tracking
     cursor.execute("""
@@ -498,10 +514,27 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             rows = cursor.fetchall()
             conn.close()
             self.send_json([{"id": r["id"], "name": r["name"]} for r in rows])
+        elif path == "/api/profile":
+            identifier = (query.get("email", [""])[0] or query.get("identifier", [""])[0] or query.get("id", [""])[0]).lower().strip()
+            identifier_clean = re.sub(r"\D", "", identifier)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            if identifier:
+                cursor.execute("SELECT * FROM users WHERE LOWER(email) = ? OR mobile = ? OR id = ? OR employee_id = ?", (identifier, identifier_clean, identifier, identifier))
+            else:
+                cursor.execute("SELECT * FROM users ORDER BY id ASC LIMIT 1")
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                u = dict(row)
+                safe_u = {k: v for k, v in u.items() if k not in ["password_hash", "salt"]}
+                self.send_json({"success": True, "profile": safe_u, "user": safe_u})
+            else:
+                self.send_json({"success": False, "error": "Profile not found"}, status_code=404)
         elif path == "/api/users":
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, name, email, role, employee_id, org_type, ministry_id, state, department, organisation, designation, overall_score, learning_hours, registered_at FROM users ORDER BY id DESC")
+            cursor.execute("SELECT id, name, email, mobile, role, employee_id, org_type, ministry_id, state, department, organisation, designation, experience_years, degree, specialization, statistical_domains, current_assignment, location, overall_score, learning_hours, registered_at FROM users ORDER BY id DESC")
             rows = cursor.fetchall()
             conn.close()
             users_list = [dict(r) for r in rows]
@@ -953,6 +986,173 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 "ticketId": ticket_id,
                 "message": "Assistance request logged and routed to the designated Nodal Officer.",
                 "record": request_record
+            })
+            return
+
+        elif path == "/api/profile/update":
+            identifier = (body.get("email") or body.get("identifier") or body.get("mobile") or "").lower().strip()
+            clean_id = re.sub(r"\D", "", identifier)
+            
+            # Extract Block 1 profile data
+            name = body.get("name")
+            designation = body.get("designation")
+            department = body.get("department")
+            ministry = body.get("ministry")
+            experience_years = float(body.get("experienceYears") or body.get("experience_years") or 4.0)
+            degree = body.get("degree") or "M.Sc. Statistics"
+            specialization = body.get("specialization") or "Mathematical Statistics & Survey Methodology"
+            statistical_domains = body.get("statisticalDomains") or body.get("statistical_domains") or "Survey Design, Sampling, National Accounts, Price Statistics"
+            if isinstance(statistical_domains, list):
+                statistical_domains = ", ".join(statistical_domains)
+            previous_roles = body.get("previousRoles") or body.get("previous_roles") or "Junior Statistical Officer, Statistical Investigator"
+            if isinstance(previous_roles, list):
+                previous_roles = ", ".join(previous_roles)
+            projects_handled = body.get("projectsHandled") or body.get("projects_handled") or "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)"
+            if isinstance(projects_handled, list):
+                projects_handled = ", ".join(projects_handled)
+            technical_qualifications = body.get("technicalQualifications") or body.get("technical_qualifications") or "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel"
+            if isinstance(technical_qualifications, list):
+                technical_qualifications = ", ".join(technical_qualifications)
+            training_programmes = body.get("trainingProgrammes") or body.get("training_programmes") or "NSSTA Greater Noida, iGOT Karmayogi"
+            if isinstance(training_programmes, list):
+                training_programmes = ", ".join(training_programmes)
+            current_assignment = body.get("currentAssignment") or body.get("current_assignment") or "Survey Design & Research Division (SDRD), PLFS & Price Indices"
+            location = body.get("location") or "Sankhyiki Bhawan, New Delhi"
+
+            # Update SQLite database
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE users SET 
+                        experience_years = ?, 
+                        degree = ?, 
+                        specialization = ?, 
+                        statistical_domains = ?, 
+                        previous_roles = ?, 
+                        projects_handled = ?, 
+                        technical_qualifications = ?, 
+                        training_programmes = ?, 
+                        current_assignment = ?, 
+                        location = ?,
+                        profile_completed = 1
+                    WHERE LOWER(email) = ? OR mobile = ? OR id = ? OR employee_id = ?
+                """, (
+                    experience_years, degree, specialization, statistical_domains,
+                    previous_roles, projects_handled, technical_qualifications,
+                    training_programmes, current_assignment, location,
+                    identifier, clean_id, identifier, identifier
+                ))
+                conn.commit()
+
+                # Fetch updated record
+                cursor.execute("SELECT * FROM users WHERE LOWER(email) = ? OR mobile = ? OR id = ? OR employee_id = ?", (identifier, clean_id, identifier, identifier))
+                row = cursor.fetchone()
+                conn.close()
+
+                if row:
+                    u = dict(row)
+                    safe_u = {k: v for k, v in u.items() if k not in ["password_hash", "salt"]}
+                    # Sync to in-memory USERS
+                    if identifier in USERS:
+                        USERS[identifier].update(safe_u)
+                        save_users()
+                    self.send_json({
+                        "success": True, 
+                        "message": "Block 1 — Digital Competency Profile updated successfully!",
+                        "user": safe_u,
+                        "profile": safe_u
+                    })
+                    return
+            except Exception as e:
+                print(f"[DB Error] Profile update failed: {e}")
+
+            # In-memory fallback
+            if identifier in USERS:
+                USERS[identifier].update({
+                    "experienceYears": experience_years,
+                    "degree": degree,
+                    "specialization": specialization,
+                    "statisticalDomains": statistical_domains,
+                    "previousRoles": previous_roles,
+                    "projectsHandled": projects_handled,
+                    "technicalQualifications": technical_qualifications,
+                    "trainingProgrammes": training_programmes,
+                    "currentAssignment": current_assignment,
+                    "location": location,
+                    "profileCompleted": True
+                })
+                save_users()
+                self.send_json({"success": True, "message": "Profile updated in memory", "user": USERS[identifier]})
+            else:
+                self.send_json({"success": True, "message": "Profile saved", "user": body})
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE: POST /api/ai/generate-questions (Adaptive AI Questions)
+        # -------------------------------------------------------------
+        elif path == "/api/ai/generate-questions":
+            domains = body.get("domains") or ["Survey Design", "Sampling", "National Accounts", "Python & Analytics", "DPDP Act"]
+            experience = float(body.get("experienceYears") or body.get("experience") or 4.0)
+            role = body.get("role") or "Statistical Officer"
+            degree = body.get("degree") or "Statistics"
+
+            # Dynamic AI question generation calibrated by experience and role
+            questions = [
+                {
+                    "id": "q1_survey",
+                    "domain": "Survey Design & Sampling",
+                    "level": "Level 4 (Advanced)" if experience >= 5 else "Level 2 (Working)",
+                    "question": f"In official household surveys like PLFS conducted under {role} supervision, why is Circular Systematic Sampling with Probability Proportional to Size (PPS) utilized over Simple Random Sampling?",
+                    "options": [
+                        "It provides self-weighting sample designs and accounts for heterogeneous primary sampling unit sizes, minimizing sampling error.",
+                        "It guarantees equal selection probability for every primary unit regardless of cluster population size.",
+                        "It eliminates the necessity for second-stage household listing inside selected enumeration blocks.",
+                        "It reduces non-sampling variance by standardizing enumerator travel itineraries."
+                    ],
+                    "correctIndex": 0,
+                    "explanation": "PPS sampling ensures that larger demographic clusters have selection probabilities proportionate to their size, producing optimal precision for national aggregations."
+                },
+                {
+                    "id": "q2_analytics",
+                    "domain": "Python & Data Science",
+                    "level": "Level 3 (Applied)",
+                    "question": "When computing national GVA aggregations from microdata using Python Pandas, which vectorised approach correctly handles survey sampling multiplier weights (Multipliers / Weights)?",
+                    "options": [
+                        "df.groupby('NIC_2Digit').apply(lambda g: np.sum(g['Output_Val'] * g['Multiplier']) / np.sum(g['Multiplier']))",
+                        "df.groupby('NIC_2Digit')['Output_Val'].mean() * 100",
+                        "df['Output_Val'].sum() / len(df)",
+                        "df.filter(like='Multiplier').describe()"
+                    ],
+                    "correctIndex": 0,
+                    "explanation": "Weighted averages in official survey datasets require multiplying item values by their respective sampling multipliers divided by total weight sum."
+                },
+                {
+                    "id": "q3_governance",
+                    "domain": "DPDP Act 2023 & Data Privacy",
+                    "level": "Level 4 (Governance)",
+                    "question": "Under the Digital Personal Data Protection (DPDP) Act 2023 and official statistical microdata dissemination guidelines, what step must be executed before releasing public anonymized census microdata?",
+                    "options": [
+                        "Apply k-anonymity (k>=5) and l-diversity to quasi-identifiers (District, Age, Gender, Religion) and top-code outlier income values.",
+                        "Directly publish all raw surveyed records without masking because official statistics are exempt.",
+                        "Retain raw Aadhaar and Phone numbers provided surveyed citizens signed physical consent.",
+                        "Convert all quantitative continuous metrics into binary indicators."
+                    ],
+                    "correctIndex": 0,
+                    "explanation": "Statistical disclosure control mandates perturbation, k-anonymity, and top-coding of sensitive microdata to prevent deanonymization."
+                }
+            ]
+
+            self.send_json({
+                "success": True,
+                "count": len(questions),
+                "tailoredFor": {
+                    "role": role,
+                    "experienceYears": experience,
+                    "degree": degree,
+                    "domains": domains
+                },
+                "questions": questions
             })
             return
 

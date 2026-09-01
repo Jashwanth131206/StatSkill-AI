@@ -54,6 +54,35 @@ function renderLearnerDashboard(state) {
             </div>
         </div>
 
+        <!-- Block 1: Digital Competency Profile Summary Banner -->
+        <div class="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-2xl p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-800/40">
+            <div class="space-y-1.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="bg-orange-500 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-sm">
+                        Block 1 — Official Digital Profile
+                    </span>
+                    <span class="text-xs text-blue-200 font-semibold">
+                        <i class="fa-solid fa-graduation-cap text-orange-400"></i> ${user.degree || 'M.Sc. Statistics'} • ${user.experienceYears || user.experience_years || 4} Years Experience in Cadre
+                    </span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-white">
+                    ${user.currentAssignment || user.current_assignment || 'Periodic Labour Force Survey (PLFS) & Price Statistics Compilation'}
+                </h2>
+                <p class="text-xs text-slate-300">
+                    Posting: <strong class="text-white">${user.location || 'Sankhyiki Bhawan, New Delhi'}</strong> • Domains: <strong class="text-white">${user.statisticalDomains || user.statistical_domains || 'Survey Design, Sampling, National Accounts, Price Statistics'}</strong>
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-shrink-0">
+                <button onclick="store.navigate('profile')" class="btn btn-secondary text-xs py-2 px-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl">
+                    <i class="fa-solid fa-id-card"></i> View Profile
+                </button>
+                <button onclick="store.navigate('assessment')" class="btn btn-saffron text-xs py-2 px-4 shadow-md rounded-xl">
+                    <i class="fa-solid fa-sliders"></i> Skill Gap Assessment
+                </button>
+            </div>
+        </div>
+
         <!-- 5 KPI Cards Row -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <!-- Overall Competency -->
