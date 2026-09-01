@@ -1,0 +1,647 @@
+#!/usr/bin/env python3
+"""
+StatSkill AI - Backend Server
+Provides REST API endpoints and serves the frontend Single Page Application.
+Built for the Ministry of Statistics and Programme Implementation (MoSPI) & National Statistical System.
+"""
+
+import http.server
+import socketserver
+import json
+import urllib.parse
+import os
+import sys
+import time
+import random
+import hashlib
+import secrets
+import sqlite3
+import re
+
+PORT = 8000
+DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(DIRECTORY, "static")
+
+# Attached iGOT Database (from igot-demo 2)
+DB_PATH = os.path.join(DIRECTORY, "igot_demo.db")
+SCHEMA_PATH = os.path.join(DIRECTORY, "igot-demo 2", "db", "schema.sql")
+SEED_PATH = os.path.join(DIRECTORY, "igot-demo 2", "db", "seed.sql")
+
+# In-Memory & Persistent Storage
+USERS_FILE = os.path.join(DIRECTORY, "users.json")
+USERS = {} # email -> user record
+OTP_STORE = {} # email -> {"otp": "123456", "expires": timestamp, "ministry": ministry}
+VERIFIED_EMAILS = set()
+
+def load_users():
+    global USERS
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                USERS = json.load(f)
+            print(f"[Users Store] Loaded {len(USERS)} registered users from users.json")
+        except Exception as e:
+            print(f"[Users Store Warning] Could not read users.json: {e}")
+            USERS = {}
+    else:
+        USERS = {}
+
+def save_users():
+    try:
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(USERS, f, indent=2)
+        print(f"[Users Store] Persisted {len(USERS)} users to users.json")
+    except Exception as e:
+        print(f"[Users Store Warning] Could not write users.json: {e}")
+
+load_users()
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def hash_password(password, salt=None):
+    if not salt:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    return hashed, salt
+
+def send_smtp_otp(to_email, otp):
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+
+    if not smtp_user or not smtp_password:
+        print(f"\n=======================================================")
+        print(f"[DEV MODE] SMTP not configured. OTP for {to_email}: {otp}")
+        print(f"=======================================================\n")
+        return True
+
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = to_email
+        msg['Subject'] = "StatSkill AI — Email Verification OTP"
+
+        body = f"Your StatSkill AI verification code is: {otp}\nThis OTP is valid for 5 minutes."
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(smtp_host, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        print(f"[SMTP] Successfully sent OTP to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[SMTP Error] Failed to send email via SMTP: {e}")
+        print(f"[DEV MODE FALLBACK] OTP for {to_email}: {otp}")
+        return True
+
+def init_db_if_needed():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ministries'")
+    row = cursor.fetchone()
+    if not row:
+        print("[Attached DB] Initializing igot_demo.db from schema.sql and seed.sql...")
+        if os.path.exists(SCHEMA_PATH) and os.path.exists(SEED_PATH):
+            with open(SCHEMA_PATH, 'r', encoding='utf-8') as f:
+                cursor.executescript(f.read())
+            with open(SEED_PATH, 'r', encoding='utf-8') as f:
+                cursor.executescript(f.read())
+            print("[Attached DB] igot_demo.db successfully seeded with Ministries & State Departments!")
+    
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    if cursor.fetchone():
+        cursor.execute("PRAGMA table_info(users)")
+        cols = [r["name"] for r in cursor.fetchall()]
+        if "role" not in cols:
+            print("[Attached DB] Updating users table schema...")
+            cursor.execute("DROP TABLE users")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT,
+            salt TEXT,
+            role TEXT DEFAULT 'learner',
+            employee_id TEXT,
+            org_type TEXT,
+            ministry_id TEXT,
+            state TEXT,
+            department TEXT,
+            organisation TEXT,
+            designation TEXT,
+            overall_score INTEGER DEFAULT 68,
+            learning_hours REAL DEFAULT 42.5,
+            assessments_completed INTEGER DEFAULT 12,
+            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login_at TIMESTAMP
+        );
+    """)
+
+    # Check and add last_login_at if table already existed
+    cursor.execute("PRAGMA table_info(users)")
+    cols = [r["name"] for r in cursor.fetchall()]
+    if "last_login_at" not in cols:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP")
+            conn.commit()
+        except Exception:
+            pass
+
+    # Login audit logs table for full compliance and tracking
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS login_audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            email TEXT,
+            name TEXT,
+            ip_address TEXT,
+            login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'SUCCESS'
+        );
+    """)
+    conn.commit()
+
+    # Seed Default Mock Users into SQLite if users table is empty
+    cursor.execute("SELECT count(*) as count FROM users")
+    cnt = cursor.fetchone()["count"]
+    if cnt <= 0:
+        print("[Attached DB] Seeding initial mock user personas into SQLite users table...")
+        default_users = [
+            ("Ananya Sharma", "ananya.sharma@nic.in", "password123", "learner", "ISS/2026/84920", "Central Government", "min_mospi", None, "National Statistical Office (NSO - SDRD)", "org_sdrd", "Senior Statistical Officer (SSO)", 68, 42.5, 12),
+            ("Dr. Rajesh Verma", "rajesh.verma@gov.in", "password123", "trainer", "ISS/2026/10294", "Central Government", "min_mospi", None, "National Accounts Division (NAD)", "org_nad", "Joint Director (Macroeconomic Statistics)", 82, 36.0, 15),
+            ("Sunita Rao", "sunita.rao@nic.in", "password123", "learner", "SSS/2026/65410", "Central Government", "min_mospi", None, "Price Statistics Division (PSD - CPI)", "org_psd", "Senior Statistical Officer (Price)", 74, 28.0, 9),
+            ("Smt. Priya Menon", "priya.menon@gov.in", "password123", "admin", "ISS/2026/00192", "Central Government", "min_mospi", None, "Capacity Building Unit", "org_cbu", "Director (Capacity Building)", 90, 58.0, 22)
+        ]
+        for name, email, raw_pwd, role, emp_id, org_type, min_id, st, dept, org, desig, score, hrs, count in default_users:
+            h, s = hash_password(raw_pwd)
+            cursor.execute("""
+                INSERT OR IGNORE INTO users 
+                (name, email, password_hash, salt, role, employee_id, org_type, ministry_id, state, department, organisation, designation, overall_score, learning_hours, assessments_completed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (name, email, h, s, role, emp_id, org_type, min_id, st, dept, org, desig, score, hrs, count))
+            
+            # Sync to in-memory USERS
+            if email not in USERS:
+                USERS[email] = {
+                    "id": emp_id,
+                    "email": email,
+                    "name": name,
+                    "ministry": min_id,
+                    "department": dept,
+                    "role": desig,
+                    "employeeId": emp_id,
+                    "password_hash": h,
+                    "salt": s,
+                    "registered_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                }
+        save_users()
+        print("[Attached DB] Mock users seeded into SQLite and users.json.")
+
+    conn.commit()
+    conn.close()
+
+try:
+    init_db_if_needed()
+except Exception as err:
+    print(f"[Attached DB Warning] Error initializing DB: {err}")
+
+# In-Memory Dynamic State & Store for Demo
+STATE = {
+    "current_user": "user_001",
+    "user_competencies": {
+        "AI/ML": {"current": 1, "required": 3, "gap": 2, "priority": "Critical"},
+        "Python": {"current": 2, "required": 4, "gap": 2, "priority": "High"},
+        "Data Visualization": {"current": 2, "required": 4, "gap": 2, "priority": "High"},
+        "R": {"current": 3, "required": 4, "gap": 1, "priority": "Moderate"},
+        "SQL": {"current": 3, "required": 4, "gap": 1, "priority": "Moderate"},
+        "Survey Design": {"current": 4, "required": 4, "gap": 0, "priority": "None"},
+        "Sampling": {"current": 4, "required": 4, "gap": 0, "priority": "None"},
+        "National Accounts": {"current": 3, "required": 4, "gap": 1, "priority": "Moderate"},
+        "Leadership": {"current": 3, "required": 4, "gap": 1, "priority": "Moderate"},
+        "Cybersecurity": {"current": 2, "required": 3, "gap": 1, "priority": "Moderate"},
+    },
+    "learning_path": [
+        {
+            "id": "lp_01",
+            "phase": "Phase 1 — Foundation",
+            "title": "Python for Official Data Analysis",
+            "duration": "8 hours",
+            "priority": "High",
+            "source": "iGOT Karmayogi",
+            "provider": "MoSPI / iGOT",
+            "competency": "Python",
+            "status": "In Progress",
+            "progress": 60,
+            "targetLevel": "Level 3"
+        },
+        {
+            "id": "lp_02",
+            "phase": "Phase 2 — Applied Skills",
+            "title": "Data Visualization & Dashboarding for Official Statistics",
+            "duration": "6 hours",
+            "priority": "High",
+            "source": "iGOT Karmayogi",
+            "provider": "NIC / MoSPI",
+            "competency": "Data Visualization",
+            "status": "Not Started",
+            "progress": 0,
+            "targetLevel": "Level 4"
+        },
+        {
+            "id": "lp_03",
+            "phase": "Phase 3 — Advanced",
+            "title": "Machine Learning & AI for Government Statistical Analytics",
+            "duration": "12 hours",
+            "priority": "Critical",
+            "source": "iGOT Karmayogi",
+            "provider": "NSSTA / IIT",
+            "competency": "AI/ML",
+            "status": "Not Started",
+            "progress": 0,
+            "targetLevel": "Level 3"
+        }
+    ],
+    "overall_competency_score": 68,
+    "assessments_completed": 12,
+    "learning_hours": 42.5,
+    "last_assessment_result": None,
+    "igot_sync_status": {
+        "status": "Connected",
+        "last_sync": "29 Aug 2026, 10:15 PM",
+        "courses_synced": 2486,
+        "active_users": 12480
+    }
+}
+
+class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=STATIC_DIR, **kwargs)
+
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
+    def do_GET(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query = urllib.parse.parse_qs(parsed_url.query)
+
+        # REST API Router
+        if path.startswith("/api/"):
+            self.handle_api_get(path, query)
+            return
+
+        # Serve static files or fallback to index.html for SPA
+        if not os.path.exists(os.path.join(STATIC_DIR, path.lstrip('/'))) or path == '/':
+            self.path = '/index.html'
+        return super().do_GET()
+
+    def do_POST(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length).decode('utf-8') if content_length > 0 else "{}"
+        try:
+            body = json.loads(post_data)
+        except Exception:
+            body = {}
+
+        if path.startswith("/api/"):
+            self.handle_api_post(path, body)
+            return
+
+        self.send_error(404, "Endpoint not found")
+
+    def send_json(self, data, status_code=200):
+        response_bytes = json.dumps(data).encode('utf-8')
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(response_bytes)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.end_headers()
+        self.wfile.write(response_bytes)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.end_headers()
+
+    def handle_api_get(self, path, query):
+        if path == "/api/state":
+            self.send_json({"success": True, "state": STATE})
+        elif path == "/api/competencies":
+            self.send_json({"success": True, "competencies": STATE["user_competencies"]})
+        elif path == "/api/learning-path":
+            self.send_json({"success": True, "learning_path": STATE["learning_path"]})
+        elif path == "/api/igot/status":
+            self.send_json({"success": True, "igot_sync": STATE["igot_sync_status"]})
+        elif path == "/api/health":
+            self.send_json({"status": "healthy", "platform": "StatSkill AI - MoSPI", "timestamp": time.time()})
+        elif path == "/api/states":
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT state FROM state_departments ORDER BY state")
+            rows = cursor.fetchall()
+            conn.close()
+            self.send_json([r["state"] for r in rows])
+        elif path == "/api/ministries/central":
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name FROM ministries WHERE parent_ministry IS NULL ORDER BY name")
+            rows = cursor.fetchall()
+            conn.close()
+            self.send_json([{"id": r["id"], "name": r["name"]} for r in rows])
+        elif path.startswith("/api/ministries/central/") and path.endswith("/departments"):
+            parts = path.split('/')
+            if len(parts) >= 5 and parts[4] == 'departments':
+                ministry_id = parts[3]
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, name FROM ministries WHERE parent_ministry = ? ORDER BY name", (ministry_id,))
+                rows = cursor.fetchall()
+                conn.close()
+                self.send_json([{"id": r["id"], "name": r["name"]} for r in rows])
+            else:
+                self.send_json({"error": "Invalid URL format"}, status_code=400)
+        elif path.startswith("/api/departments/state/"):
+            state_encoded = path[len("/api/departments/state/"):]
+            state_name = urllib.parse.unquote(state_encoded)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name FROM state_departments WHERE state = ? AND parent_ministry IS NULL ORDER BY name", (state_name,))
+            rows = cursor.fetchall()
+            conn.close()
+            self.send_json([{"id": r["id"], "name": r["name"]} for r in rows])
+        elif path == "/api/users":
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name, email, role, employee_id, org_type, ministry_id, state, department, organisation, designation, overall_score, learning_hours, registered_at FROM users ORDER BY id DESC")
+            rows = cursor.fetchall()
+            conn.close()
+            users_list = [dict(r) for r in rows]
+            self.send_json({"success": True, "count": len(users_list), "users": users_list})
+        else:
+            self.send_json({"error": "Unknown API GET endpoint", "path": path}, status_code=404)
+
+    def handle_api_post(self, path, body):
+
+        # -------------------------------------------------------------
+        # ROUTE 1: POST /api/auth/send-otp
+        # -------------------------------------------------------------
+        if path == "/api/auth/send-otp":
+            email = (body.get("email") or "").lower().strip()
+            ministry = (body.get("ministry") or "").strip()
+
+            email_pattern = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
+            if not email or not re.match(email_pattern, email):
+                self.send_json({"success": False, "error": "Please enter a valid official email address"}, status_code=400)
+                return
+
+            if not ministry or ministry == "-- Select Ministry or Department --":
+                self.send_json({"success": False, "error": "Please select a Ministry or Department"}, status_code=400)
+                return
+
+            otp = f"{random.randint(100000, 999999)}"
+            OTP_STORE[email] = {
+                "otp": otp,
+                "expires": time.time() + 300,
+                "ministry": ministry
+            }
+
+            send_smtp_otp(email, otp)
+            self.send_json({"success": True, "message": "Verification OTP sent to your email address", "otp": otp})
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE 2: POST /api/auth/verify-otp
+        # -------------------------------------------------------------
+        elif path == "/api/auth/verify-otp":
+            email = (body.get("email") or "").lower().strip()
+            otp = str(body.get("otp") or "").strip()
+
+            if not email or not otp:
+                self.send_json({"success": False, "error": "Email and 6-digit OTP are required"}, status_code=400)
+                return
+
+            record = OTP_STORE.get(email)
+            if not record or record["otp"] != otp or time.time() > record["expires"]:
+                self.send_json({"success": False, "error": "Invalid or expired OTP. Please try again or resend code."}, status_code=400)
+                return
+
+            VERIFIED_EMAILS.add(email)
+            del OTP_STORE[email]
+            self.send_json({"success": True, "message": "OTP verified successfully"})
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE 3: POST /api/auth/register
+        # -------------------------------------------------------------
+        elif path in ["/api/auth/register", "/api/register"]:
+            email = (body.get("email") or "").lower().strip()
+            name = (body.get("name") or "").strip()
+            ministry = (body.get("ministry") or "Ministry of Statistics & Programme Implementation (MoSPI)").strip()
+            department = (body.get("department") or ministry).strip()
+            designation = (body.get("designation") or "Senior Statistical Officer (SSO)").strip()
+            org_type = (body.get("gov_type") or body.get("org_type") or "Central Government").strip()
+            password = body.get("password") or ""
+
+            if not email:
+                self.send_json({"success": False, "error": "Email address is required for registration"}, status_code=400)
+                return
+
+            if email not in VERIFIED_EMAILS:
+                self.send_json({"success": False, "error": "Email verification via OTP is required before registration"}, status_code=400)
+                return
+
+            if email in USERS:
+                self.send_json({"success": False, "error": "An account with this email is already registered. Please log in."}, status_code=400)
+                return
+
+            # Password Strength Validation: min 8 chars, 1 letter, 1 number
+            if len(password) < 8 or not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
+                self.send_json({"success": False, "error": "Password must be at least 8 characters long and contain both letters and numbers"}, status_code=400)
+                return
+
+            # Auto-generate Official ID format {CADRE}/{YEAR}/{5-digit-number}
+            year = time.strftime("%Y")
+            num_hash = (int(hashlib.sha256(email.encode('utf-8')).hexdigest()[:8], 16) % 90000) + 10000
+            cadre = "ISS" if ("mospi" in ministry.lower() or "central" in ministry.lower() or "statistical" in ministry.lower()) else "SSS"
+            official_id = f"{cadre}/{year}/{num_hash}"
+
+            hashed, salt = hash_password(password)
+            user_name = name if name else email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+
+            user_record = {
+                "id": f"usr_{secrets.token_hex(6)}",
+                "email": email,
+                "name": user_name,
+                "ministry": ministry,
+                "department": department,
+                "designation": designation,
+                "role": designation,
+                "employeeId": official_id,
+                "org_type": org_type,
+                "password_hash": hashed,
+                "salt": salt,
+                "overallScore": 68,
+                "learningHours": 42.5,
+                "registered_at": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            USERS[email] = user_record
+            save_users()
+
+            # Also persist into SQLite users table for system compatibility
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO users 
+                    (name, email, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user_name, email, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation))
+                conn.commit()
+                conn.close()
+                print(f"[DB Success] Registered new user '{user_name}' ({email}) into SQLite.")
+            except Exception as e:
+                print(f"[DB Warning] Could not persist registration to SQLite: {e}")
+
+            safe_user = {k: v for k, v in user_record.items() if k not in ["password_hash", "salt"]}
+            token = f"token_registered_{secrets.token_hex(8)}"
+            self.send_json({"success": True, "token": token, "user": safe_user, "officer": safe_user})
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE 4: POST /api/auth/login
+        # -------------------------------------------------------------
+        elif path == "/api/auth/login":
+            email = (body.get("email") or "").lower().strip()
+            password = body.get("password") or ""
+
+            user = USERS.get(email)
+
+            # Fallback check against SQLite users table if not in USERS dict
+            if not user:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT * FROM users WHERE LOWER(email) = ?", (email,))
+                    row = cursor.fetchone()
+                    conn.close()
+                    if row:
+                        u = dict(row)
+                        user = {
+                            "id": str(u["id"]),
+                            "email": u["email"],
+                            "name": u["name"],
+                            "ministry": u.get("ministry_id") or "Ministry of Statistics & Programme Implementation",
+                            "department": u.get("department") or "National Statistical Office (NSO)",
+                            "designation": u.get("designation") or "Senior Statistical Officer (SSO)",
+                            "role": u.get("designation") or "Senior Statistical Officer (SSO)",
+                            "employeeId": u.get("employee_id") or "ISS/2026/84920",
+                            "password_hash": u.get("password_hash"),
+                            "salt": u.get("salt"),
+                            "overallScore": u.get("overall_score") or 68,
+                            "learningHours": u.get("learning_hours") or 42.5
+                        }
+                except Exception:
+                    pass
+
+            if not user or not user.get("password_hash") or not user.get("salt"):
+                self.send_json({"success": False, "error": "Invalid email or password"}, status_code=401)
+                return
+
+            expected_hash = hashlib.sha256((password + user["salt"]).encode('utf-8')).hexdigest()
+            if expected_hash != user["password_hash"]:
+                self.send_json({"success": False, "error": "Invalid email or password"}, status_code=401)
+                return
+
+            safe_user = {k: v for k, v in user.items() if k not in ["password_hash", "salt"]}
+            token = f"token_login_{secrets.token_hex(8)}"
+
+            # Persist login timestamp & audit entry into SQLite database
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE LOWER(email) = ?", (email,))
+                ip_addr = self.client_address[0] if hasattr(self, 'client_address') and self.client_address else '127.0.0.1'
+                cursor.execute("""
+                    INSERT INTO login_audit_logs (user_id, email, name, ip_address, login_time, status)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 'SUCCESS')
+                """, (safe_user.get("id") or safe_user.get("employeeId"), email, safe_user.get("name"), ip_addr))
+                conn.commit()
+                conn.close()
+                print(f"[DB Audit] Recorded login for '{safe_user.get('name')}' ({email}) into SQLite database.")
+            except Exception as e:
+                print(f"[DB Warning] Could not log login event to SQLite: {e}")
+
+            self.send_json({"success": True, "token": token, "user": safe_user, "role": safe_user.get("role", "learner")})
+            return
+
+        elif path == "/api/auth/nodal-request":
+            ticket_id = f"NODAL-REQ-{random.randint(100000, 999999)}"
+            request_record = {
+                "ticket_id": ticket_id,
+                "org_name": body.get("orgName", ""),
+                "contact": body.get("contact", ""),
+                "remarks": body.get("remarks", ""),
+                "draft_info": body.get("draftInfo", {}),
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            self.send_json({
+                "success": True,
+                "ticketId": ticket_id,
+                "message": "Assistance request logged and routed to the designated Nodal Officer.",
+                "record": request_record
+            })
+            return
+
+        elif path == "/api/assessments/submit":
+            score = body.get("score", 82)
+            STATE["assessments_completed"] += 1
+            STATE["overall_competency_score"] = min(100, STATE["overall_competency_score"] + 6)
+            STATE["learning_hours"] += 1.5
+            self.send_json({
+                "success": True,
+                "message": "Assessment submitted successfully",
+                "new_overall_score": STATE["overall_competency_score"],
+                "total_assessments": STATE["assessments_completed"]
+            })
+            return
+
+        else:
+            self.send_json({"error": "Unknown API POST endpoint", "path": path}, status_code=404)
+
+def run_server():
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("", PORT), StatSkillHandler) as httpd:
+        print(f"=======================================================")
+        print(f"StatSkill AI Server running at http://localhost:{PORT}")
+        print(f"=======================================================")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down server.")
+            httpd.server_close()
+
+if __name__ == "__main__":
+    run_server()
