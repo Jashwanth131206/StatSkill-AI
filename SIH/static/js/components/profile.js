@@ -229,24 +229,54 @@ window.openEditProfileModal = function() {
             </div>
 
             <div class="space-y-4 max-h-[65vh] overflow-y-auto pr-2 text-xs">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Ministry / Administration <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
-                        <input type="text" id="modal_prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
+                <!-- Cadre Section with Unlock Toggle -->
+                <div class="p-3.5 ${window.isModalCadreUnlocked ? 'bg-amber-50/50 border-amber-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
+                    <div class="flex items-center justify-between border-b ${window.isModalCadreUnlocked ? 'border-amber-200' : 'border-slate-200'} pb-2">
+                        <div>
+                            <h3 class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-800'} text-xs flex items-center gap-2">
+                                <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-lock-open text-amber-600' : 'fa-lock text-emerald-600'}"></i> Official Cadre Information
+                            </h3>
+                            <p class="text-[10px] text-slate-500">Ministry, Department, Designation, and Name</p>
+                        </div>
+                        <button type="button" onclick="toggleModalCadreUnlock()" class="text-[11px] font-bold ${window.isModalCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'} px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-check' : 'fa-user-pen'}"></i>
+                            ${window.isModalCadreUnlocked ? 'Lock Cadre' : 'Correct / Edit Cadre Details'}
+                        </button>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Department / Division <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
-                        <input type="text" id="modal_prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
+
+                    ${window.isModalCadreUnlocked ? `
+                        <div class="p-2 bg-amber-100/70 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                            <span>Correction mode active: You can correct any mistakes in your name, ministry, department, or designation.</span>
+                        </div>
+                    ` : ''}
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Official Name</label>
+                            <input type="text" id="modal_prof_name" value="${user.name || 'Statistical Officer'}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Ministry / Administration</label>
+                            <input type="text" id="modal_prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Department / Division</label>
+                            <input type="text" id="modal_prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Designation / Role</label>
+                            <input type="text" id="modal_prof_desig" value="${desigVal}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                        </div>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Designation / Role <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
-                        <input type="text" id="modal_prof_desig" value="${desigVal}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
-                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Posting Office & Location</label>
                         <input type="text" id="modal_prof_location" value="${location}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
                     </div>
-                    <div class="sm:col-span-2">
+                    <div class="sm:col-span-1">
                         <label class="font-bold text-slate-700 block mb-1">Current Survey & Statistical Assignment</label>
                         <input type="text" id="modal_prof_assignment" value="${assignment}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
                     </div>
@@ -295,7 +325,15 @@ window.openEditProfileModal = function() {
     if (container) container.innerHTML = modalHTML;
 };
 
+window.isModalCadreUnlocked = false;
+
+window.toggleModalCadreUnlock = function() {
+    window.isModalCadreUnlocked = !window.isModalCadreUnlocked;
+    window.openEditProfileModal();
+};
+
 window.closeEditProfileModal = function() {
+    window.isModalCadreUnlocked = false;
     const container = document.getElementById('editProfileModalContainer');
     if (container) container.innerHTML = '';
 };
@@ -303,25 +341,31 @@ window.closeEditProfileModal = function() {
 window.saveModalProfile = function() {
     const activeUser = (window.store && window.store.state && window.store.state.user) || {};
     const desigClean = (typeof activeUser.designation === 'object' && activeUser.designation ? (activeUser.designation.title || activeUser.designation.name) : activeUser.designation) || 'Senior Statistical Officer (SSO)';
+    
+    const nameVal = document.getElementById('modal_prof_name')?.value?.trim();
+    const minVal = document.getElementById('modal_prof_ministry')?.value?.trim();
+    const deptVal = document.getElementById('modal_prof_dept')?.value?.trim();
+    const desigVal = document.getElementById('modal_prof_desig')?.value?.trim();
+
     const updatedProfile = {
         email: activeUser.email || 'ananya.sharma@nic.in',
         mobile: activeUser.mobile || '',
-        name: activeUser.name || 'Statistical Officer',
-        ministry: activeUser.ministry || 'Ministry of Statistics & Programme Implementation',
-        department: activeUser.department || 'National Statistical Office (NSO - SDRD)',
-        designation: desigClean,
-        role: desigClean,
+        name: nameVal || activeUser.name || 'Statistical Officer',
+        ministry: minVal || activeUser.ministry || 'Ministry of Statistics & Programme Implementation',
+        department: deptVal || activeUser.department || 'National Statistical Office (NSO - SDRD)',
+        designation: desigVal || desigClean,
+        role: desigVal || desigClean,
         employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
         org_type: activeUser.org_type || 'Central Government',
-        location: document.getElementById('modal_prof_location')?.value || activeUser.location,
-        currentAssignment: document.getElementById('modal_prof_assignment')?.value || activeUser.currentAssignment,
+        location: document.getElementById('modal_prof_location')?.value?.trim() || activeUser.location,
+        currentAssignment: document.getElementById('modal_prof_assignment')?.value?.trim() || activeUser.currentAssignment,
         degree: document.getElementById('modal_prof_degree')?.value || activeUser.degree,
-        specialization: document.getElementById('modal_prof_spec')?.value || activeUser.specialization,
+        specialization: document.getElementById('modal_prof_spec')?.value?.trim() || activeUser.specialization,
         experienceYears: parseFloat(document.getElementById('modal_prof_exp')?.value || 4.0),
-        previousRoles: document.getElementById('modal_prof_prevRoles')?.value || activeUser.previousRoles,
-        statisticalDomains: document.getElementById('modal_prof_domains')?.value || activeUser.statisticalDomains,
-        technicalQualifications: document.getElementById('modal_prof_tools')?.value || activeUser.technicalQualifications,
-        trainingProgrammes: document.getElementById('modal_prof_training')?.value || activeUser.trainingProgrammes,
+        previousRoles: document.getElementById('modal_prof_prevRoles')?.value?.trim() || activeUser.previousRoles,
+        statisticalDomains: document.getElementById('modal_prof_domains')?.value?.trim() || activeUser.statisticalDomains,
+        technicalQualifications: document.getElementById('modal_prof_tools')?.value?.trim() || activeUser.technicalQualifications,
+        trainingProgrammes: document.getElementById('modal_prof_training')?.value?.trim() || activeUser.trainingProgrammes,
         profileCompleted: true
     };
 

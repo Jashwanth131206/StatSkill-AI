@@ -1106,6 +1106,10 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users SET 
+                        name = COALESCE(?, name),
+                        ministry_id = COALESCE(?, ministry_id),
+                        department = COALESCE(?, department),
+                        designation = COALESCE(?, designation),
                         experience_years = ?, 
                         degree = ?, 
                         specialization = ?, 
@@ -1116,14 +1120,16 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                         training_programmes = ?, 
                         current_assignment = ?, 
                         location = ?,
-                        designation = COALESCE(?, designation),
                         profile_completed = 1
                     WHERE LOWER(email) = ? OR mobile = ? OR id = ? OR employee_id = ?
                 """, (
+                    name if (name and name.strip()) else None,
+                    ministry if (ministry and ministry.strip()) else None,
+                    department if (department and department.strip()) else None,
+                    designation if (designation and designation.strip()) else None,
                     experience_years, degree, specialization, statistical_domains,
                     previous_roles, projects_handled, technical_qualifications,
                     training_programmes, current_assignment, location,
-                    designation,
                     identifier, clean_id, identifier, identifier
                 ))
                 conn.commit()

@@ -121,48 +121,64 @@ function getAssessmentStepHTML(step, user, state) {
                 </div>
             </div>
 
-            <!-- 1. Official Cadre & Registration Record (LOCKED) -->
-            <div class="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                        <i class="fa-solid fa-lock text-emerald-600"></i> 1. Official Service Record <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Locked & Verified</span>
-                    </h3>
-                    <span class="text-[11px] text-slate-500 italic"><i class="fa-solid fa-shield-halved text-emerald-600"></i> Authenticated at Login</span>
+            <!-- 1. Official Cadre & Registration Record (LOCKED with OPTIONAL UNLOCK) -->
+            <div class="p-4 ${window.isCadreUnlocked ? 'bg-amber-50/40 border-amber-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
+                <div class="flex items-center justify-between border-b ${window.isCadreUnlocked ? 'border-amber-200' : 'border-slate-200'} pb-2">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-xs font-black uppercase tracking-wider ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} flex items-center gap-2">
+                            <i class="fa-solid ${window.isCadreUnlocked ? 'fa-lock-open text-amber-600' : 'fa-lock text-emerald-600'}"></i> 1. Official Service Record 
+                        </h3>
+                        <span class="${window.isCadreUnlocked ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-200'} text-[10px] font-extrabold px-2 py-0.5 rounded-full border">
+                            ${window.isCadreUnlocked ? '🔓 Correction Mode' : '🔒 Locked & Verified'}
+                        </span>
+                    </div>
+                    <button type="button" onclick="toggleUnlockCadre()" class="text-[11px] font-bold ${window.isCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'} px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid ${window.isCadreUnlocked ? 'fa-check' : 'fa-user-pen'}"></i>
+                        ${window.isCadreUnlocked ? 'Done Correcting' : 'Correct / Edit Cadre Info'}
+                    </button>
                 </div>
+
+                ${window.isCadreUnlocked ? `
+                    <div class="p-2.5 bg-amber-100/70 border border-amber-200 rounded-xl text-amber-900 text-[11px] flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 flex-shrink-0"></i>
+                        <span><strong>Correction Mode Active:</strong> You can correct any mistakes made in your name, ministry, department, or designation. Updates will be saved to your permanent official database profile.</span>
+                    </div>
+                ` : ''}
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                        <label class="font-bold text-slate-600 block mb-1">Official Name</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Official Name</label>
                         <div class="relative">
-                            <input type="text" value="${user.name || 'Statistical Officer'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
-                            <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            <input type="text" id="prof_name" value="${user.name || 'Statistical Officer'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-600 block mb-1">Cadre Code / Government Employee ID</label>
                         <div class="relative">
-                            <input type="text" value="${empId}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
+                            <input type="text" id="prof_empId" value="${empId}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
                             <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
                         </div>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-600 block mb-1">Ministry / Administration</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Ministry / Administration</label>
                         <div class="relative">
-                            <input type="text" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
-                            <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            <input type="text" id="prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-600 block mb-1">Department / Division</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Department / Division</label>
                         <div class="relative">
-                            <input type="text" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
-                            <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            <input type="text" id="prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-600 block mb-1">Designation / Role</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Designation / Role</label>
                         <div class="relative">
-                            <input type="text" value="${desig}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-800 font-semibold cursor-not-allowed select-none">
-                            <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            <input type="text" id="prof_desig" value="${desig}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg">
+                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                     </div>
                     <div>
@@ -412,6 +428,17 @@ function getAssessmentStepHTML(step, user, state) {
     }
 }
 
+window.isCadreUnlocked = false;
+
+window.toggleUnlockCadre = function() {
+    window.isCadreUnlocked = !window.isCadreUnlocked;
+    const container = document.getElementById('assessmentContent');
+    const user = (window.store && window.store.state && window.store.state.user) || {};
+    if (container) {
+        container.innerHTML = getAssessmentStepHTML(1, user, window.store ? window.store.state : {});
+    }
+};
+
 window.toggleToolBadge = function(tool) {
     const toolsInput = document.getElementById('prof_tools');
     if (!toolsInput) return;
@@ -434,6 +461,11 @@ window.nextAssessmentStep = function() {
         const activeUser = (window.store && window.store.state && window.store.state.user) || {};
         const desigClean = (typeof activeUser.designation === 'object' && activeUser.designation ? (activeUser.designation.title || activeUser.designation.name) : activeUser.designation) || 'Senior Statistical Officer (SSO)';
         
+        const nameEl = document.getElementById('prof_name');
+        const minEl = document.getElementById('prof_ministry');
+        const deptEl = document.getElementById('prof_dept');
+        const desigEl = document.getElementById('prof_desig');
+
         const locEl = document.getElementById('prof_location');
         const assignEl = document.getElementById('prof_assignment');
         const degEl = document.getElementById('prof_degree');
@@ -446,14 +478,14 @@ window.nextAssessmentStep = function() {
         const trainEl = document.getElementById('prof_training');
 
         const updatedProfile = {
-            // Strictly retain authenticated registration & cadre hierarchy
+            // Retain or update official cadre hierarchy if unlocked
             email: activeUser.email || 'ananya.sharma@nic.in',
             mobile: activeUser.mobile || '',
-            name: activeUser.name || 'Statistical Officer',
-            ministry: activeUser.ministry || 'Ministry of Statistics & Programme Implementation',
-            department: activeUser.department || 'National Statistical Office (NSO - SDRD)',
-            designation: desigClean,
-            role: desigClean,
+            name: nameEl && nameEl.value.trim() ? nameEl.value.trim() : (activeUser.name || 'Statistical Officer'),
+            ministry: minEl && minEl.value.trim() ? minEl.value.trim() : (activeUser.ministry || 'Ministry of Statistics & Programme Implementation'),
+            department: deptEl && deptEl.value.trim() ? deptEl.value.trim() : (activeUser.department || 'National Statistical Office (NSO - SDRD)'),
+            designation: desigEl && desigEl.value.trim() ? desigEl.value.trim() : desigClean,
+            role: desigEl && desigEl.value.trim() ? desigEl.value.trim() : desigClean,
             employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
             org_type: activeUser.org_type || 'Central Government',
             
