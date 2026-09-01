@@ -498,7 +498,7 @@
                 </div>
                 <div class="p-3.5 bg-white/10 border border-white/15 rounded-2xl text-center space-y-1.5 backdrop-blur-xs">
                     <div class="w-8 h-8 rounded-full bg-orange-400 text-white mx-auto flex items-center justify-center text-sm font-bold shadow">2</div>
-                    <p class="text-[11px] text-slate-200 leading-snug">Enter 10-digit mobile number for SMS OTP code</p>
+                    <p class="text-[11px] text-slate-200 leading-snug">Enter official mobile number for OTP verification</p>
                 </div>
                 <div class="p-3.5 bg-white/10 border border-white/15 rounded-2xl text-center space-y-1.5 backdrop-blur-xs">
                     <div class="w-8 h-8 rounded-full bg-orange-500 text-white mx-auto flex items-center justify-center text-sm font-bold shadow">3</div>
@@ -572,7 +572,7 @@
                 <div class="space-y-1">
                     <div class="flex items-center justify-between">
                         <label class="block text-xs font-bold text-slate-700">
-                            ${isOtpMode ? '10-Digit Mobile Number (for SMS OTP)' : '10-Digit Mobile or Official Email'} <span class="text-red-500">*</span>
+                            ${isOtpMode ? 'Official Mobile Number' : 'Official Mobile Number or Email'} <span class="text-red-500">*</span>
                         </label>
                         ${isOtpMode ? `<span id="loginMobileCountBadge" class="text-[10px] font-semibold ${isMobileValid ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${(state.loginEmail || '').length}/10 digits</span>` : ''}
                     </div>
@@ -875,11 +875,11 @@
                 </select>
             </div>
 
-            <!-- 6. Official 10-Digit Mobile Number (Primary for SMS OTP) -->
+            <!-- 6. Official 10-Digit Mobile Number -->
             <div class="space-y-1 pt-0.5">
                 <div class="flex items-center justify-between">
                     <label class="block text-xs font-bold text-slate-700">
-                        6. 10-Digit Mobile Number (for SMS OTP) <span class="text-red-500">*</span>
+                        6. Official Mobile Number <span class="text-red-500">*</span>
                     </label>
                     <span id="mobileCountBadge" class="text-[10px] font-semibold ${(authState.mobile || '').length === 10 ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${(authState.mobile || '').length}/10 digits</span>
                 </div>
