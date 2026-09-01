@@ -420,6 +420,30 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json({"success": False, "error": "Please select a Ministry or Department"}, status_code=400)
                 return
 
+            # Check if email is already registered in USERS cache or SQLite
+            is_already_registered = False
+            if email in USERS:
+                is_already_registered = True
+            else:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id FROM users WHERE LOWER(email) = ?", (email,))
+                    if cursor.fetchone():
+                        is_already_registered = True
+                    conn.close()
+                except Exception:
+                    pass
+
+            if is_already_registered:
+                self.send_json({
+                    "success": False,
+                    "alreadyRegistered": True,
+                    "error": "This email address is already registered. Please log in with your official credentials."
+                }, status_code=400)
+                return
+
+            # Generate brand new 6-digit OTP code
             otp = f"{random.randint(100000, 999999)}"
             OTP_STORE[email] = {
                 "otp": otp,

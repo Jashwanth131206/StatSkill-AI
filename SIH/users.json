@@ -94,5 +94,21 @@
     "overallScore": 68,
     "learningHours": 42.5,
     "registered_at": "2026-09-01 01:01:01"
+  },
+  "abcdddd@nic.gov.in": {
+    "id": "usr_53fd560dc1cc",
+    "email": "abcdddd@nic.gov.in",
+    "name": "dfgxfgzdf",
+    "ministry": "Ministry of Jal Shakti",
+    "department": "National Minor Irrigation Census & Groundwater Data Division",
+    "designation": "Assistant Statistical Officer (ASO) \u2014 State Statistical Cadre",
+    "role": "Assistant Statistical Officer (ASO) \u2014 State Statistical Cadre",
+    "employeeId": "SSS/2026/70873",
+    "org_type": "Central Government",
+    "password_hash": "0ddc8987fbb0250a02200d4d2e8c00cd396dfb8836908cf8d8556f4f08a49b79",
+    "salt": "44b9d4b19d05e10e448b5fef81abdd89",
+    "overallScore": 68,
+    "learningHours": 42.5,
+    "registered_at": "2026-09-01 15:43:24"
   }
 }

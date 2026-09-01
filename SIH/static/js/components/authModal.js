@@ -1385,7 +1385,20 @@
             } else {
                 const errNotice = document.getElementById('step1ErrorNotice');
                 const errText = document.getElementById('step1ErrorText');
-                if (errText) errText.textContent = data.error || "Failed to send OTP. Please try again.";
+                if (errText) {
+                    if (data.alreadyRegistered || (data.error && data.error.toLowerCase().includes('already registered'))) {
+                        errText.innerHTML = `
+                            <div class="space-y-1.5 py-0.5">
+                                <div class="font-bold text-red-700">${data.error}</div>
+                                <button type="button" onclick="switchToLoginWithEmail('${authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Switch to Login with this Email →
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        errText.textContent = data.error || "Failed to send OTP. Please try again.";
+                    }
+                }
                 if (errNotice) errNotice.classList.remove('hidden');
                 handleEmailChange(authState.email);
             }
@@ -1400,8 +1413,28 @@
         });
     };
 
+    window.switchToLoginWithEmail = function(email) {
+        if (window.store) {
+            window.store.state.authModalTab = 'login';
+            window.store.notify();
+        }
+        setTimeout(() => {
+            const loginEmailInput = document.getElementById('loginEmail');
+            if (loginEmailInput) {
+                loginEmailInput.value = email;
+                authState.loginEmail = email;
+            }
+            const loginPwd = document.getElementById('loginPassword');
+            if (loginPwd) loginPwd.focus();
+            if (typeof window.refreshCaptcha === 'function') window.refreshCaptcha();
+        }, 50);
+    };
+
     window.handleResendOtp = function() {
         if (authState.resendTimer > 0) return;
+        const otpInput = document.getElementById('regEmailOtp');
+        if (otpInput) otpInput.value = '';
+        authState.otp = '';
         handleStep1Submit();
     };
 
@@ -1511,8 +1544,22 @@
             } else {
                 const errNotice = document.getElementById('step3ErrorNotice');
                 const errText = document.getElementById('step3ErrorText');
-                if (errText) errText.textContent = data.error || "Registration failed. Please try again.";
+                if (errText) {
+                    if (data.error && data.error.toLowerCase().includes('already registered')) {
+                        errText.innerHTML = `
+                            <div class="space-y-1.5 py-0.5">
+                                <div class="font-bold text-red-700">${data.error}</div>
+                                <button type="button" onclick="switchToLoginWithEmail('${authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Log In Now →
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        errText.textContent = data.error || "Registration failed. Please try again.";
+                    }
+                }
                 if (errNotice) errNotice.classList.remove('hidden');
+                refreshCaptcha();
                 updateStep3State();
             }
         })
@@ -1522,6 +1569,7 @@
             const errText = document.getElementById('step3ErrorText');
             if (errText) errText.textContent = "Network error registering user.";
             if (errNotice) errNotice.classList.remove('hidden');
+            refreshCaptcha();
             updateStep3State();
         });
     };
@@ -1581,8 +1629,9 @@
             } else {
                 const errNotice = document.getElementById('loginErrorNotice');
                 const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = "Invalid email or password";
+                if (errText) errText.textContent = data.error || "Invalid email or password. Please try again.";
                 if (errNotice) errNotice.classList.remove('hidden');
+                refreshCaptcha();
                 updateLoginState();
             }
         })
@@ -1592,6 +1641,7 @@
             const errText = document.getElementById('loginErrorText');
             if (errText) errText.textContent = "Network error logging in.";
             if (errNotice) errNotice.classList.remove('hidden');
+            refreshCaptcha();
             updateLoginState();
         });
     };
