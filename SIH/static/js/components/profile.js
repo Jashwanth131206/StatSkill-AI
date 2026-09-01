@@ -231,16 +231,16 @@ window.openEditProfileModal = function() {
             <div class="space-y-4 max-h-[65vh] overflow-y-auto pr-2 text-xs">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Ministry / Administration</label>
-                        <input type="text" id="modal_prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
+                        <label class="font-bold text-slate-700 block mb-1">Ministry / Administration <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
+                        <input type="text" id="modal_prof_ministry" value="${user.ministry || 'Ministry of Statistics & Programme Implementation'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Department / Division</label>
-                        <input type="text" id="modal_prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
+                        <label class="font-bold text-slate-700 block mb-1">Department / Division <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
+                        <input type="text" id="modal_prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Designation / Role</label>
-                        <input type="text" id="modal_prof_desig" value="${desigVal}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
+                        <label class="font-bold text-slate-700 block mb-1">Designation / Role <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">🔒 Locked Record</span></label>
+                        <input type="text" id="modal_prof_desig" value="${desigVal}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Posting Office & Location</label>
@@ -302,14 +302,17 @@ window.closeEditProfileModal = function() {
 
 window.saveModalProfile = function() {
     const activeUser = (window.store && window.store.state && window.store.state.user) || {};
+    const desigClean = (typeof activeUser.designation === 'object' && activeUser.designation ? (activeUser.designation.title || activeUser.designation.name) : activeUser.designation) || 'Senior Statistical Officer (SSO)';
     const updatedProfile = {
         email: activeUser.email || 'ananya.sharma@nic.in',
         mobile: activeUser.mobile || '',
         name: activeUser.name || 'Statistical Officer',
-        ministry: document.getElementById('modal_prof_ministry')?.value || activeUser.ministry,
-        department: document.getElementById('modal_prof_dept')?.value || activeUser.department,
-        designation: document.getElementById('modal_prof_desig')?.value || activeUser.designation,
-        role: document.getElementById('modal_prof_desig')?.value || activeUser.role,
+        ministry: activeUser.ministry || 'Ministry of Statistics & Programme Implementation',
+        department: activeUser.department || 'National Statistical Office (NSO - SDRD)',
+        designation: desigClean,
+        role: desigClean,
+        employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
+        org_type: activeUser.org_type || 'Central Government',
         location: document.getElementById('modal_prof_location')?.value || activeUser.location,
         currentAssignment: document.getElementById('modal_prof_assignment')?.value || activeUser.currentAssignment,
         degree: document.getElementById('modal_prof_degree')?.value || activeUser.degree,

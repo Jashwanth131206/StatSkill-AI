@@ -340,6 +340,49 @@ try:
 except Exception as err:
     print(f"[Attached DB Warning] Error initializing DB: {err}")
 
+def row_to_user_dict(u):
+    if not u:
+        return None
+    desig = u.get("designation") or "Senior Statistical Officer (SSO)"
+    if "[object Object]" in str(desig):
+        desig = "Senior Statistical Officer (SSO)"
+    return {
+        "id": str(u.get("id")),
+        "email": u.get("email"),
+        "mobile": u.get("mobile") or "",
+        "name": u.get("name"),
+        "ministry": u.get("ministry_id") or "Ministry of Statistics & Programme Implementation",
+        "department": u.get("department") or "National Statistical Office (NSO - SDRD)",
+        "designation": desig,
+        "role": desig,
+        "employeeId": u.get("employee_id") or "ISS/2026/84920",
+        "employee_id": u.get("employee_id") or "ISS/2026/84920",
+        "org_type": u.get("org_type") or "Central Government",
+        "experienceYears": float(u.get("experience_years") or 4.0),
+        "experience_years": float(u.get("experience_years") or 4.0),
+        "degree": u.get("degree") or "M.Sc. Statistics",
+        "specialization": u.get("specialization") or "Mathematical Statistics & Survey Methodology",
+        "statisticalDomains": u.get("statistical_domains") or "Survey Design, Sampling, National Accounts, Price Statistics",
+        "statistical_domains": u.get("statistical_domains") or "Survey Design, Sampling, National Accounts, Price Statistics",
+        "previousRoles": u.get("previous_roles") or "Junior Statistical Officer, Statistical Investigator",
+        "previous_roles": u.get("previous_roles") or "Junior Statistical Officer, Statistical Investigator",
+        "projectsHandled": u.get("projects_handled") or "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+        "projects_handled": u.get("projects_handled") or "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+        "technicalQualifications": u.get("technical_qualifications") or "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+        "technical_qualifications": u.get("technical_qualifications") or "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+        "trainingProgrammes": u.get("training_programmes") or "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)",
+        "training_programmes": u.get("training_programmes") or "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)",
+        "currentAssignment": u.get("current_assignment") or "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+        "current_assignment": u.get("current_assignment") or "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+        "location": u.get("location") or "Sankhyiki Bhawan, New Delhi",
+        "profileCompleted": bool(u.get("profile_completed", 1)),
+        "overallScore": u.get("overall_score") or 68,
+        "learningHours": float(u.get("learning_hours") or 42.5),
+        "assessmentsCompleted": u.get("assessments_completed") or 12,
+        "password_hash": u.get("password_hash"),
+        "salt": u.get("salt")
+    }
+
 # In-Memory Dynamic State & Store for Demo
 STATE = {
     "current_user": "user_001",
@@ -726,7 +769,27 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 "designation": designation,
                 "role": designation,
                 "employeeId": official_id,
+                "employee_id": official_id,
                 "org_type": org_type,
+                "experienceYears": 4.0,
+                "experience_years": 4.0,
+                "degree": "M.Sc. Statistics",
+                "specialization": "Mathematical Statistics & Survey Methodology",
+                "statisticalDomains": "Survey Design, Sampling, National Accounts, Price Statistics",
+                "statistical_domains": "Survey Design, Sampling, National Accounts, Price Statistics",
+                "previousRoles": "Junior Statistical Officer, Statistical Investigator",
+                "previous_roles": "Junior Statistical Officer, Statistical Investigator",
+                "projectsHandled": "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+                "projects_handled": "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+                "technicalQualifications": "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+                "technical_qualifications": "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+                "trainingProgrammes": "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)",
+                "training_programmes": "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)",
+                "currentAssignment": "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+                "current_assignment": "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+                "location": "Sankhyiki Bhawan, New Delhi",
+                "profileCompleted": False,
+                "profile_completed": 0,
                 "password_hash": hashed,
                 "salt": salt,
                 "overallScore": 68,
@@ -743,9 +806,14 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO users 
-                    (name, email, mobile, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (user_name, email, mobile, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation))
+                    (name, email, mobile, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation,
+                     experience_years, degree, specialization, statistical_domains, previous_roles, projects_handled, technical_qualifications, training_programmes, current_assignment, location, profile_completed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user_name, email, mobile, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation,
+                      4.0, "M.Sc. Statistics", "Mathematical Statistics & Survey Methodology", "Survey Design, Sampling, National Accounts, Price Statistics",
+                      "Junior Statistical Officer, Statistical Investigator", "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+                      "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel", "NSSTA Greater Noida (Survey Methodology), iGOT Karmayogi (Data Analytics)",
+                      "Survey Design & Research Division (SDRD), PLFS & Price Indices", "Sankhyiki Bhawan, New Delhi", 0))
                 conn.commit()
                 conn.close()
                 print(f"[DB Success] Registered new user '{user_name}' ({email}, mobile: {mobile}) into SQLite.")
@@ -1066,7 +1134,7 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 conn.close()
 
                 if row:
-                    u = dict(row)
+                    u = row_to_user_dict(dict(row))
                     safe_u = {k: v for k, v in u.items() if k not in ["password_hash", "salt"]}
                     # Sync to in-memory USERS
                     if identifier in USERS:
