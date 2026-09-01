@@ -92,6 +92,9 @@ function renderCompetencyAssessment(state) {
 
 function getAssessmentStepHTML(step, user, state) {
     if (step === 1) {
+        const desig = (typeof user.designation === 'object' && user.designation)
+            ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
+            : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
         const exp = user.experienceYears || user.experience_years || 4;
         const degree = user.degree || "M.Sc. Statistics";
         const spec = user.specialization || "Survey Methodology & Mathematical Statistics";
@@ -140,7 +143,7 @@ function getAssessmentStepHTML(step, user, state) {
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Current Job Role / Designation</label>
-                        <input type="text" id="prof_desig" value="${user.designation || user.role || 'Senior Statistical Officer (SSO)'}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600">
+                        <input type="text" id="prof_desig" value="${desig}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Posting Office & Location</label>

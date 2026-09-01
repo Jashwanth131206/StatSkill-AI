@@ -5,14 +5,18 @@
  */
 
 function renderLearnerDashboard(state) {
-    const user = state.user || MOCK_DATA.currentUser;
+    const user = state.user || MOCK_DATA.currentUser || {};
     const lang = state.currentLanguage || 'en';
-    const overallScore = state.overallScore;
+    const overallScore = state.overallScore || 68;
+
+    const userDesig = (typeof user.designation === 'object' && user.designation) 
+        ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
+        : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
 
     // Filter skill gaps from all competencies
     const allComps = [];
-    state.competencyFramework.forEach(domain => {
-        domain.competencies.forEach(comp => {
+    (state.competencyFramework || []).forEach(domain => {
+        (domain.competencies || []).forEach(comp => {
             if (comp.gap > 0) {
                 allComps.push(comp);
             }
@@ -21,7 +25,7 @@ function renderLearnerDashboard(state) {
 
     // Sort by critical, high, moderate
     const priorityOrder = { "Critical": 1, "High": 2, "Moderate": 3, "None": 4 };
-    allComps.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    allComps.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
 
     return `
     <div class="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
@@ -30,8 +34,8 @@ function renderLearnerDashboard(state) {
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full uppercase">Official Cadre</span>
-                    <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">${user.designation || user.role || 'Officer'}</span>
-                    <span class="text-xs text-slate-500 font-medium">Employee ID: ${user.employeeId || 'GOV/2026/001'}</span>
+                    <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">${userDesig}</span>
+                    <span class="text-xs text-slate-500 font-medium">Employee ID: ${user.employeeId || 'ISS/2026/84920'}</span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black text-navy-900 mt-1" style="color: #0B2545;">
                     Good morning, ${(lang === 'hi' && user.hindiName) ? user.hindiName : ((lang === 'te' && user.teluguName) ? user.teluguName : (user.name || 'Officer'))}

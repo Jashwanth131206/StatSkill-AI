@@ -677,8 +677,14 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             name = (body.get("name") or "").strip()
             ministry = (body.get("ministry") or "Ministry of Statistics & Programme Implementation (MoSPI)").strip()
             department = (body.get("department") or ministry).strip()
-            designation = (body.get("designation") or "Senior Statistical Officer (SSO)").strip()
             org_type = (body.get("gov_type") or body.get("org_type") or "Central Government").strip()
+            designation_raw = body.get("designation") or "Senior Statistical Officer (SSO)"
+            if isinstance(designation_raw, dict):
+                designation = designation_raw.get("title") or designation_raw.get("name") or "Senior Statistical Officer (SSO)"
+            else:
+                designation = str(designation_raw).strip()
+            if "[object Object]" in designation or not designation:
+                designation = "Senior Statistical Officer (SSO)"
             password = body.get("password") or ""
 
             if not email and mobile:
@@ -995,7 +1001,14 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             
             # Extract Block 1 profile data
             name = body.get("name")
-            designation = body.get("designation")
+            designation_raw = body.get("designation")
+            if isinstance(designation_raw, dict):
+                designation = designation_raw.get("title") or designation_raw.get("name") or "Senior Statistical Officer (SSO)"
+            else:
+                designation = str(designation_raw).strip() if designation_raw else None
+            if designation and ("[object Object]" in designation or designation == ""):
+                designation = "Senior Statistical Officer (SSO)"
+
             department = body.get("department")
             ministry = body.get("ministry")
             experience_years = float(body.get("experienceYears") or body.get("experience_years") or 4.0)
@@ -1035,12 +1048,14 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                         training_programmes = ?, 
                         current_assignment = ?, 
                         location = ?,
+                        designation = COALESCE(?, designation),
                         profile_completed = 1
                     WHERE LOWER(email) = ? OR mobile = ? OR id = ? OR employee_id = ?
                 """, (
                     experience_years, degree, specialization, statistical_domains,
                     previous_roles, projects_handled, technical_qualifications,
                     training_programmes, current_assignment, location,
+                    designation,
                     identifier, clean_id, identifier, identifier
                 ))
                 conn.commit()

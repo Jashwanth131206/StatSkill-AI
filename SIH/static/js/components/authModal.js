@@ -334,24 +334,28 @@
 
     function getDesignationList(govType, ministryName, departmentName) {
         if (!departmentName || departmentName.startsWith('--')) return [];
-        if (window.OrgDataService) {
+        if (window.OrgDataService && typeof window.OrgDataService.getDesignations === 'function') {
             const roles = window.OrgDataService.getDesignations(govType, ministryName, departmentName);
             if (roles && roles.length > 0) {
-                return roles.map(r => r.name || r);
+                return roles.map(r => {
+                    if (typeof r === 'object' && r) return r.title || r.name || r.id || 'Senior Statistical Officer (SSO)';
+                    return String(r);
+                }).filter(s => s && s !== '[object Object]');
             }
         }
         return [
-            "Junior Statistical Officer (JSO)",
-            "Senior Statistical Officer (SSO)",
-            "Assistant Director (AD)",
-            "Deputy Director (DD)",
-            "Joint Director (JD)",
-            "Director",
-            "Deputy Director General (DDG)",
-            "Additional Director General (ADG)",
-            "Director General (DG)",
-            "Statistical Investigator Grade-I",
-            "Statistical Investigator Grade-II"
+            "Junior Statistical Officer (JSO) — SSS Cadre",
+            "Senior Statistical Officer (SSO) — SSS Cadre",
+            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
+            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
+            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
+            "Director (Survey Design / Official Statistics) — ISS Cadre",
+            "Deputy Director General (DDG - Statistical Cadre)",
+            "Additional Director General (ADG - Official Statistics)",
+            "Director General (NSO / Central Statistical System)",
+            "District Statistical Officer (DSO) — State DES",
+            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
+            "Statistical Investigator / Survey Field Officer (FOD)"
         ];
     }
 
@@ -1804,6 +1808,10 @@
 
         const officialEmail = authState.email || `${authState.mobile}@nic.gov.in`;
 
+        const cleanDesig = (typeof authState.designation === 'object' && authState.designation)
+            ? (authState.designation.title || authState.designation.name || 'Senior Statistical Officer (SSO)')
+            : (String(authState.designation || '').trim() === '[object Object]' || !authState.designation ? 'Senior Statistical Officer (SSO)' : String(authState.designation).trim());
+
         fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1814,7 +1822,7 @@
                 gov_type: authState.govType === 'central' ? 'Central Government' : 'State / UT Government',
                 ministry: authState.ministry,
                 department: authState.department,
-                designation: authState.designation,
+                designation: cleanDesig,
                 password: authState.password
             })
         })

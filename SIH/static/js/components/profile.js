@@ -9,7 +9,9 @@ function renderUserProfile(state) {
     const avatar = user.avatar || defaultAvatar;
     const name = user.name || "Statistical Officer";
     const cadre = user.cadre || (user.employeeId && user.employeeId.startsWith('ISS') ? 'Indian Statistical Service (ISS)' : 'Subordinate Statistical Service (SSS)');
-    const designation = user.designation || user.role || 'Senior Statistical Officer (SSO)';
+    const designation = (typeof user.designation === 'object' && user.designation)
+        ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
+        : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
     const ministry = user.ministry || 'Ministry of Statistics & Programme Implementation (MoSPI)';
     const department = user.department || 'National Statistical Office (NSO - SDRD)';
     const employeeId = user.employeeId || 'ISS/2026/84920';
@@ -195,6 +197,9 @@ function renderUserProfile(state) {
 
 window.openEditProfileModal = function() {
     const user = (window.store && window.store.state && window.store.state.user) || {};
+    const desigVal = (typeof user.designation === 'object' && user.designation)
+        ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
+        : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
     const exp = user.experienceYears || user.experience_years || 4;
     const degree = user.degree || "M.Sc. Statistics";
     const spec = user.specialization || "Survey Methodology & Mathematical Statistics";
@@ -235,7 +240,7 @@ window.openEditProfileModal = function() {
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Designation / Role</label>
-                        <input type="text" id="modal_prof_desig" value="${user.designation || user.role || 'Senior Statistical Officer (SSO)'}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
+                        <input type="text" id="modal_prof_desig" value="${desigVal}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Posting Office & Location</label>

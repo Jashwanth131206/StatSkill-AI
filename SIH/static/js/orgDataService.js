@@ -26,18 +26,18 @@
 
     // 2. PURE OFFICIAL STATISTICAL CADRE DESIGNATIONS (ISS / SSS / State DES)
     const OFFICIAL_STATISTICAL_DESIGNATIONS = [
-        { id: "desig_jso", title: "Junior Statistical Officer (JSO) — SSS Cadre" },
-        { id: "desig_sso", title: "Senior Statistical Officer (SSO) — SSS Cadre" },
-        { id: "desig_ad", title: "Assistant Director (Statistics / Data Analytics) — ISS Cadre" },
-        { id: "desig_dd", title: "Deputy Director (Survey Operations / National Accounts) — ISS Cadre" },
-        { id: "desig_jd", title: "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre" },
-        { id: "desig_dir", title: "Director (Survey Design / Official Statistics) — ISS Cadre" },
-        { id: "desig_ddg", title: "Deputy Director General (DDG - Statistical Cadre)" },
-        { id: "desig_adg", title: "Additional Director General (ADG - Official Statistics)" },
-        { id: "desig_dg", title: "Director General (NSO / Central Statistical System)" },
-        { id: "desig_dso", title: "District Statistical Officer (DSO) — State DES" },
-        { id: "desig_aso", title: "Assistant Statistical Officer (ASO) — State Statistical Cadre" },
-        { id: "desig_inv", title: "Statistical Investigator / Survey Field Officer (FOD)" }
+        { id: "desig_jso", title: "Junior Statistical Officer (JSO) — SSS Cadre", name: "Junior Statistical Officer (JSO) — SSS Cadre" },
+        { id: "desig_sso", title: "Senior Statistical Officer (SSO) — SSS Cadre", name: "Senior Statistical Officer (SSO) — SSS Cadre" },
+        { id: "desig_ad", title: "Assistant Director (Statistics / Data Analytics) — ISS Cadre", name: "Assistant Director (Statistics / Data Analytics) — ISS Cadre" },
+        { id: "desig_dd", title: "Deputy Director (Survey Operations / National Accounts) — ISS Cadre", name: "Deputy Director (Survey Operations / National Accounts) — ISS Cadre" },
+        { id: "desig_jd", title: "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre", name: "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre" },
+        { id: "desig_dir", title: "Director (Survey Design / Official Statistics) — ISS Cadre", name: "Director (Survey Design / Official Statistics) — ISS Cadre" },
+        { id: "desig_ddg", title: "Deputy Director General (DDG - Statistical Cadre)", name: "Deputy Director General (DDG - Statistical Cadre)" },
+        { id: "desig_adg", title: "Additional Director General (ADG - Official Statistics)", name: "Additional Director General (ADG - Official Statistics)" },
+        { id: "desig_dg", title: "Director General (NSO / Central Statistical System)", name: "Director General (NSO / Central Statistical System)" },
+        { id: "desig_dso", title: "District Statistical Officer (DSO) — State DES", name: "District Statistical Officer (DSO) — State DES" },
+        { id: "desig_aso", title: "Assistant Statistical Officer (ASO) — State Statistical Cadre", name: "Assistant Statistical Officer (ASO) — State Statistical Cadre" },
+        { id: "desig_inv", title: "Statistical Investigator / Survey Field Officer (FOD)", name: "Statistical Investigator / Survey Field Officer (FOD)" }
     ];
 
     function makeDivisions(prefix, nameList) {
