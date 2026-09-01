@@ -371,7 +371,7 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
             self.send_json([{"id": r["id"], "name": r["name"]} for r in rows])
         elif path.startswith("/api/ministries/central/") and path.endswith("/departments"):
-            parts = path.split('/')
+            parts = [p for p in path.split('/') if p]
             if len(parts) >= 5 and parts[4] == 'departments':
                 ministry_id = parts[3]
                 conn = get_db_connection()

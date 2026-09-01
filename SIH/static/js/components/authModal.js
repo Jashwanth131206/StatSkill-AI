@@ -307,25 +307,21 @@
         }
         if (govType === 'central') {
             return [
-                "National Statistical Office (NSO)",
-                "Survey Design and Research Division (SDRD), Kolkata",
-                "Field Operations Division (FOD), New Delhi / Regional Offices",
-                "Data Processing Division (DPD), Kolkata & Data Centres",
-                "National Accounts Division (NAD), New Delhi",
-                "Economic Statistics Division (ESD - ASI/IIP), New Delhi",
-                "Price Statistics Division (PSD - CPI), New Delhi",
-                "Social Statistics Division (SSD & SDG Unit), New Delhi",
-                "National Statistical Systems Training Academy (NSSTA)",
-                "Programme Implementation Wing (PI Wing)"
+                "National Statistical Office (NSO) - Survey Design and Research Division (SDRD), Kolkata",
+                "National Statistical Office (NSO) - Field Operations Division (FOD), New Delhi",
+                "National Statistical Office (NSO) - Data Processing Division (DPD), Kolkata",
+                "National Accounts Division (NAD) — GDP & Macroeconomic Statistics",
+                "Economic Statistics Division (ESD) — ASI, IIP & Business Register",
+                "Price Statistics Division (PSD) — Consumer Price Index (CPI)",
+                "Social Statistics Division (SSD) — SDG National Indicator Framework",
+                "National Statistical Systems Training Academy (NSSTA), Greater Noida"
             ];
         } else {
             return [
-                "Directorate of Economics & Statistics (DES)",
-                "State Planning & Development Department",
-                "Bureau of Applied Economics & Statistics",
-                "District Statistical Office (DSO)",
-                "State Data Analytics & Monitoring Cell",
-                "State Evaluation & Statistics Division"
+                "Directorate of Economics & Statistics (DES) — State Accounts & GSDP",
+                "Directorate of Economics & Statistics (DES) — Socio-Economic Surveys",
+                "District Statistical Offices (DSO Network across all Districts)",
+                "State Data Analytics & SDG Monitoring Cell"
             ];
         }
     }
@@ -339,18 +335,18 @@
             }
         }
         return [
-            "Senior Statistical Officer (SSO)",
-            "Junior Statistical Officer (JSO)",
-            "Director / Joint Director (Statistics)",
-            "Deputy Director (Survey & Accounts)",
-            "Assistant Director (Data Analytics)",
-            "Additional Director General (ADG) / DDG",
-            "Director General (Statistical Cadre)",
-            "District Statistical Officer (DSO)",
-            "Assistant Statistical Officer (ASO)",
-            "Data Analyst / GIS Specialist",
-            "Technical Director / Systems Analyst",
-            "Designated Departmental Nodal Officer"
+            "Junior Statistical Officer (JSO) — SSS Cadre",
+            "Senior Statistical Officer (SSO) — SSS Cadre",
+            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
+            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
+            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
+            "Director (Survey Design / Official Statistics) — ISS Cadre",
+            "Deputy Director General (DDG - Statistical Cadre)",
+            "Additional Director General (ADG - Official Statistics)",
+            "Director General (NSO / Central Statistical System)",
+            "District Statistical Officer (DSO) — State DES",
+            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
+            "Statistical Investigator / Survey Field Officer (FOD)"
         ];
     }
 
@@ -726,12 +722,15 @@
         if (!ministryOptions.length) {
             ministryOptions = [
                 "Ministry of Statistics & Programme Implementation (MoSPI)",
-                "National Statistical Office (NSO)",
                 "Ministry of Finance",
-                "Ministry of Commerce & Industry",
                 "Ministry of Agriculture & Farmers Welfare",
                 "Ministry of Health & Family Welfare",
-                "State Directorate of Economics & Statistics (DES)"
+                "Ministry of Commerce & Industry",
+                "Ministry of Labour & Employment",
+                "Ministry of Consumer Affairs, Food & Public Distribution",
+                "Ministry of Rural Development",
+                "Ministry of Jal Shakti",
+                "Ministry of Education"
             ];
         }
 
