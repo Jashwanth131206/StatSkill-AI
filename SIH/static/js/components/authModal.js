@@ -19,12 +19,13 @@
     // Internal Form & Validation State
     let authState = {
         tab: 'register', // 'login' | 'register'
-        step: 1, // 1: Info + Email, 2: OTP, 3: Create Password
+        step: 1, // 1: Info + Mobile/Email, 2: OTP, 3: Create Password
         name: '',
         govType: 'central', // 'central' | 'state'
         ministry: '',
         department: '',
         designation: '',
+        mobile: '',
         email: '',
         otp: '',
         demoOtp: '',
@@ -163,45 +164,36 @@
     };
 
     function syncCaptchaUI() {
-        // Badges
         const loginBadge = document.getElementById('loginCaptchaBadge');
         const regBadge = document.getElementById('regCaptchaBadge');
-        if (loginBadge) {
-            if (isRobotChecked) loginBadge.classList.remove('hidden');
-            else loginBadge.classList.add('hidden');
-        }
-        if (regBadge) {
-            if (isRobotChecked) regBadge.classList.remove('hidden');
-            else regBadge.classList.add('hidden');
-        }
-
-        // Quick Verify Buttons
         const loginBtn = document.getElementById('loginQuickVerifyBtn');
         const regBtn = document.getElementById('regQuickVerifyBtn');
-        
+        const loginErr = document.getElementById('loginCaptchaError');
+        const regErr = document.getElementById('regCaptchaError');
+
+        if (loginBadge) loginBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300' : 'hidden';
+        if (regBadge) regBadge.className = isRobotChecked ? 'absolute right-2 top-2 text-emerald-600 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300' : 'hidden';
+
         if (loginBtn) {
-            if (isRobotChecked) {
-                loginBtn.className = "w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs";
-                loginBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> <span>Verified</span>`;
-            } else {
-                loginBtn.className = "w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs";
-                loginBtn.innerHTML = `<i class="fa-solid fa-shield-halved text-blue-600 text-xs"></i> <span>I'm not a robot</span>`;
-            }
+            loginBtn.className = isRobotChecked 
+                ? 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' 
+                : 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs';
+            loginBtn.innerHTML = `
+                <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
+                <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
+            `;
         }
 
         if (regBtn) {
-            if (isRobotChecked) {
-                regBtn.className = "w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs";
-                regBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> <span>Verified</span>`;
-            } else {
-                regBtn.className = "w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs";
-                regBtn.innerHTML = `<i class="fa-solid fa-shield-halved text-blue-600 text-xs"></i> <span>I'm not a robot</span>`;
-            }
+            regBtn.className = isRobotChecked 
+                ? 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs' 
+                : 'w-full sm:w-auto px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-2xs';
+            regBtn.innerHTML = `
+                <i class="fa-solid ${isRobotChecked ? 'fa-circle-check text-emerald-600' : 'fa-shield-halved text-blue-600'}"></i>
+                <span>${isRobotChecked ? 'Verified' : "I'm not a robot"}</span>
+            `;
         }
 
-        // Hide errors
-        const loginErr = document.getElementById('loginCaptchaError');
-        const regErr = document.getElementById('regCaptchaError');
         if (isRobotChecked) {
             if (loginErr) loginErr.classList.add('hidden');
             if (regErr) regErr.classList.add('hidden');
@@ -224,6 +216,7 @@
             ministry: '',
             department: '',
             designation: '',
+            mobile: '',
             email: '',
             otp: '',
             demoOtp: '',
@@ -245,7 +238,13 @@
     }
 
     // Validation Helpers
+    function isValidMobile(mobile) {
+        const clean = (mobile || '').replace(/\D/g, '');
+        return clean.length === 10 && /^[6-9]\d{9}$/.test(clean);
+    }
+
     function isValidEmail(email) {
+        if (!email) return true; // Optional if mobile is provided
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
     }
 
@@ -273,7 +272,7 @@
     }
 
     function isStep1Valid() {
-        return isAllPriorFilled() && isValidEmail(authState.email);
+        return isAllPriorFilled() && isValidMobile(authState.mobile) && isValidEmail(authState.email);
     }
 
     function isPasswordLengthValid(pwd) { return (pwd || '').length >= 8; }
@@ -548,6 +547,7 @@
                         <span class="text-2xl font-black tracking-tight text-slate-900 font-sans" style="color:#0B2545;">StatSkill <span class="text-blue-600">AI</span></span>
                         <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">MoSPI National Portal</div>
                     </div>
+                    </div>
                 </div>
             </div>
 
@@ -563,10 +563,10 @@
 
             <form onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
                 
-                <!-- Email Field -->
+                <!-- Email / Mobile Field -->
                 <div class="space-y-1">
-                    <label class="block text-xs font-bold text-slate-700">Email Address <span class="text-red-500">*</span></label>
-                    <input id="loginEmail" type="email" required value="${authState.loginEmail}" oninput="updateLoginState()" placeholder="e.g. officer@nic.in or yourname@gmail.com" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <label class="block text-xs font-bold text-slate-700">Official Email or 10-Digit Mobile Number <span class="text-red-500">*</span></label>
+                    <input id="loginEmail" type="text" required value="${authState.loginEmail}" oninput="updateLoginState()" placeholder="e.g. 9876543210 or officer@nic.in" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
 
                 <!-- Password Field -->
@@ -679,17 +679,17 @@
             <div class="flex items-center justify-between text-xs py-1">
                 <div class="flex items-center gap-1.5">
                     <div class="w-5 h-5 rounded-full ${step >= 1 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">1</div>
-                    <span class="font-bold ${step >= 1 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Hierarchy & Email</span>
+                    <span class="font-bold ${step >= 1 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Hierarchy & Contact</span>
                 </div>
                 <div class="flex-1 h-1 ${step >= 2 ? 'bg-orange-500' : 'bg-slate-200'} mx-2 rounded-full"></div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-5 h-5 rounded-full ${step >= 2 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">2</div>
-                    <span class="font-bold ${step >= 2 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">OTP</span>
+                    <span class="font-bold ${step >= 2 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">OTP Verification</span>
                 </div>
                 <div class="flex-1 h-1 ${step >= 3 ? 'bg-orange-500' : 'bg-slate-200'} mx-2 rounded-full"></div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-5 h-5 rounded-full ${step >= 3 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">3</div>
-                    <span class="font-bold ${step >= 3 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Password</span>
+                    <span class="font-bold ${step >= 3 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Security Password</span>
                 </div>
             </div>
 
@@ -700,14 +700,13 @@
     }
 
     // -------------------------------------------------------------
-    // STEP 1: CASCADING HIERARCHY DETAILS & EMAIL UNLOCK
+    // STEP 1: CASCADING HIERARCHY DETAILS & 10-DIGIT MOBILE NUMBER UNLOCK
     // -------------------------------------------------------------
     function renderStep1() {
         const govType = authState.govType || 'central';
         const minSelected = isMinistrySelected();
         const deptSelected = isDepartmentSelected();
-        const desigSelected = isDesignationSelected();
-        const emailUnlocked = isAllPriorFilled();
+        const contactUnlocked = isAllPriorFilled();
         const canSendOtp = isStep1Valid();
 
         // 1. Fetch Ministries / States
@@ -804,21 +803,40 @@
                 </select>
             </div>
 
-            <!-- 6. Official Email Address (LOCKED until Name, Ministry, Department & Designation are all selected) -->
+            <!-- 6. Official 10-Digit Mobile Number (Primary for SMS OTP) -->
+            <div class="space-y-1 pt-0.5">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700">
+                        6. 10-Digit Mobile Number (for SMS OTP) <span class="text-red-500">*</span>
+                    </label>
+                    <span id="mobileCountBadge" class="text-[10px] font-semibold ${(authState.mobile || '').length === 10 ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${(authState.mobile || '').length}/10 digits</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-flex items-center px-3 py-2 rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 text-slate-700 font-bold text-xs">
+                        🇮🇳 +91
+                    </span>
+                    <input id="regOfficialMobile" type="tel" maxLength="10" required ${!contactUnlocked ? 'disabled' : ''} value="${authState.mobile}" oninput="handleMobileChange(this.value)" placeholder="${contactUnlocked ? 'Enter 10-digit mobile number (e.g. 9876543210)' : 'Fill all fields above to enter mobile'}" class="w-full px-3 py-2 ${contactUnlocked ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} border rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+                <div id="step1MobileError" class="text-[11px] text-red-600 font-semibold flex items-center gap-1 mt-1 hidden">
+                    <i class="fa-solid fa-circle-exclamation text-xs"></i> Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)
+                </div>
+            </div>
+
+            <!-- 7. Official Email Address (Optional Secondary Identifier) -->
             <div class="space-y-1 pt-0.5">
                 <label class="block text-xs font-bold text-slate-700">
-                    6. Email Address <span class="text-red-500">*</span>
+                    7. Official Email Address (Optional)
                 </label>
-                <input id="regOfficialEmail" type="email" required ${!emailUnlocked ? 'disabled' : ''} value="${authState.email}" oninput="handleEmailChange(this.value)" placeholder="${emailUnlocked ? 'e.g. officer@nic.in or yourname@gmail.com' : 'Fill all fields above to enter email'}" class="w-full px-3 py-2 ${emailUnlocked ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <input id="regOfficialEmail" type="email" ${!contactUnlocked ? 'disabled' : ''} value="${authState.email}" oninput="handleEmailChange(this.value)" placeholder="${contactUnlocked ? 'e.g. officer@nic.in or yourname@gmail.com' : 'Fill all fields above to enter email'}" class="w-full px-3 py-2 ${contactUnlocked ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
                 <div id="step1EmailError" class="text-[11px] text-red-600 font-semibold flex items-center gap-1 mt-1 hidden">
                     <i class="fa-solid fa-circle-exclamation text-xs"></i> Please enter a valid email format
                 </div>
             </div>
 
-            <!-- 7. Send OTP Button (LOCKED until valid Email is entered) -->
+            <!-- 8. Send OTP Button (LOCKED until 10-digit mobile is valid) -->
             <div class="pt-1.5">
                 <button type="button" onclick="handleStep1Submit()" id="sendOtpBtn" ${!canSendOtp ? 'disabled' : ''} class="w-full py-2.5 ${canSendOtp ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-sm' : 'bg-slate-300 cursor-not-allowed'} text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-2">
-                    <span id="sendOtpBtnText">${authState.isSendingOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending OTP...' : 'Send OTP Code →'}</span>
+                    <span id="sendOtpBtnText">${authState.isSendingOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching SMS OTP...' : 'Send OTP Code via SMS →'}</span>
                 </button>
             </div>
 
@@ -827,60 +845,80 @@
     }
 
     // -------------------------------------------------------------
-    // STEP 2: OTP VERIFICATION
+    // STEP 2: OTP VERIFICATION & RETRY MECHANISM
     // -------------------------------------------------------------
     function renderStep2() {
         const isOtpFilled = (authState.otp || '').trim().length === 6;
         const canVerify = isOtpFilled && !authState.isVerifyingOtp;
+        const contactTarget = authState.mobile ? `+91 ${authState.mobile}` : authState.email;
 
         return `
         <form id="regStep2Form" onsubmit="event.preventDefault(); handleStep2Verify();" class="space-y-4">
             
-            <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl space-y-1.5">
+            <!-- Real-time SMS Dispatch Card -->
+            <div class="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-2 shadow-2xs">
                 <div class="flex items-center justify-between">
-                    <span class="font-bold text-blue-900 text-xs">Verification Code Sent</span>
-                    ${authState.demoOtp ? `<span class="bg-blue-600 text-white font-mono text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">OTP: ${authState.demoOtp}</span>` : ''}
+                    <div class="flex items-center gap-1.5 font-bold text-blue-900 text-xs">
+                        <i class="fa-solid fa-mobile-screen-button text-blue-600"></i>
+                        <span>SMS OTP Dispatched</span>
+                    </div>
+                    ${authState.demoOtp ? `<span class="bg-blue-600 text-white font-mono text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs tracking-wider">CODE: ${authState.demoOtp}</span>` : ''}
                 </div>
-                <div class="text-[11px] text-slate-600">Enter the 6-digit OTP sent to <strong>${authState.email}</strong></div>
+                <div class="text-[11px] text-slate-700 leading-relaxed">
+                    Official 6-digit OTP code sent via SMS to <strong>${contactTarget}</strong>.
+                </div>
                 
                 ${authState.demoOtp ? `
-                <div class="pt-1">
-                    <button type="button" onclick="quickFillOtp('${authState.demoOtp}')" class="text-[11px] font-bold text-blue-700 bg-white hover:bg-blue-100 border border-blue-300 px-3 py-1 rounded-lg cursor-pointer flex items-center gap-1.5 shadow-2xs">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Click to Auto-Fill OTP (${authState.demoOtp})
+                <div class="pt-0.5 flex items-center gap-2">
+                    <button type="button" onclick="quickFillOtp('${authState.demoOtp}')" class="text-[11px] font-bold text-blue-700 bg-white hover:bg-blue-100 border border-blue-300 px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Auto-Fill Code (${authState.demoOtp})
                     </button>
+                    <span class="text-[10px] text-slate-500 font-medium">(or enter code manually below)</span>
                 </div>
                 ` : ''}
             </div>
 
-            <div id="step2ErrorNotice" class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${authState.step2Error ? '' : 'hidden'}">
-                <i class="fa-solid fa-circle-exclamation text-base text-red-600 flex-shrink-0"></i>
-                <span id="step2ErrorText" class="font-semibold">${authState.step2Error || ''}</span>
+            <!-- Error Notice with Try Again Button -->
+            <div id="step2ErrorNotice" class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex flex-col gap-2 animate-shake ${authState.step2Error ? '' : 'hidden'}">
+                <div class="flex items-center gap-2 font-bold text-red-800">
+                    <i class="fa-solid fa-circle-exclamation text-base text-red-600 flex-shrink-0"></i>
+                    <span id="step2ErrorText">${authState.step2Error || 'Invalid OTP code entered. Please try again.'}</span>
+                </div>
+                <div class="flex items-center gap-2 pt-1 border-t border-red-100">
+                    <button type="button" onclick="clearAndRetryOtp()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> Clear & Re-enter OTP
+                    </button>
+                    <span class="text-[11px] text-slate-600">Please re-enter the code and try again.</span>
+                </div>
             </div>
 
-            <!-- OTP Input -->
-            <div class="space-y-1">
-                <label class="block text-xs font-bold text-slate-700">6-Digit OTP Code <span class="text-red-500">*</span></label>
-                <input id="regEmailOtp" type="text" maxLength="6" required value="${authState.otp}" oninput="updateStep2State()" placeholder="Enter 6-digit OTP" class="w-full px-3.5 py-3 bg-white border border-blue-400 rounded-lg text-center font-mono font-black text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-600">
+            <!-- 6-Digit Monospace OTP Input Box -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700">Enter 6-Digit OTP Code <span class="text-red-500">*</span></label>
+                    <span id="otpCharCount" class="text-[10px] font-bold ${(authState.otp || '').length === 6 ? 'text-emerald-600' : 'text-slate-400'}">${(authState.otp || '').length}/6 digits</span>
+                </div>
+                <input id="regEmailOtp" type="text" maxLength="6" required value="${authState.otp}" oninput="handleOtpInputChange(this.value)" placeholder="• • • • • •" class="w-full px-3.5 py-3 bg-white border ${authState.step2Error ? 'border-red-500 ring-2 ring-red-200' : 'border-blue-400'} rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner">
             </div>
 
-            <!-- Resend Timer & Button -->
+            <!-- Resend Timer & Actions -->
             <div class="flex items-center justify-between text-xs pt-1">
                 <div id="resendTimerContainer">
                     ${authState.resendTimer > 0 ? `
-                        <span id="resendTimerDisplay" class="text-slate-500 font-medium"><i class="fa-regular fa-clock"></i> Resend code in ${authState.resendTimer}s</span>
+                        <span id="resendTimerDisplay" class="text-slate-500 font-medium"><i class="fa-regular fa-clock"></i> Resend OTP in ${authState.resendTimer}s</span>
                     ` : `
-                        <button type="button" onclick="handleResendOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer"><i class="fa-solid fa-rotate-right"></i> Resend OTP Code</button>
+                        <button type="button" onclick="handleResendOtp()" class="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Resend OTP via SMS</button>
                     `}
                 </div>
-                <button type="button" onclick="goToStep(1)" class="text-slate-500 hover:text-slate-800 text-[11px] font-semibold underline cursor-pointer">Edit Hierarchy / Email</button>
+                <button type="button" onclick="goToStep(1)" class="text-slate-500 hover:text-slate-800 text-[11px] font-semibold underline cursor-pointer">Change Mobile Number</button>
             </div>
 
             <!-- Verify Button -->
             <div class="flex items-center justify-between pt-3">
-                <button type="button" onclick="goToStep(1)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs cursor-pointer">
-                    ← Back
+                <button type="button" onclick="goToStep(1)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Back
                 </button>
-                <button type="button" onclick="handleStep2Verify()" id="verifyOtpBtn" ${!canVerify ? 'disabled' : ''} class="px-6 py-2.5 ${canVerify ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer' : 'bg-slate-300 cursor-not-allowed'} text-white font-bold rounded-lg text-xs shadow-md transition-all flex items-center justify-center gap-2">
+                <button type="button" onclick="handleStep2Verify()" id="verifyOtpBtn" ${!canVerify ? 'disabled' : ''} class="px-6 py-2.5 ${canVerify ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md' : 'bg-slate-300 cursor-not-allowed'} text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-2">
                     <span id="verifyOtpBtnText">${authState.isVerifyingOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...' : 'Verify OTP →'}</span>
                 </button>
             </div>
@@ -890,7 +928,7 @@
     }
 
     // -------------------------------------------------------------
-    // STEP 3: CREATE PASSWORD
+    // STEP 3: CREATE PASSWORD & CAPTCHA
     // -------------------------------------------------------------
     function renderStep3() {
         const pwd = authState.password || '';
@@ -902,13 +940,14 @@
         const matchOk = cpwd.length > 0 && pwd === cpwd;
 
         const canRegister = isStep3Valid() && !authState.isRegistering;
+        const verifiedDisplay = authState.mobile ? `+91 ${authState.mobile}` : authState.email;
 
         return `
         <form id="regStep3Form" onsubmit="event.preventDefault(); handleStep3Register();" class="space-y-3.5">
             
             <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
                 <i class="fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0"></i>
-                <span>Email <strong>${authState.email}</strong> verified! Create your password.</span>
+                <span>Mobile <strong>${verifiedDisplay}</strong> verified! Create your account password.</span>
             </div>
 
             <div id="step3ErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${authState.step3Error ? '' : 'hidden'}">
@@ -1019,7 +1058,7 @@
 
     window.handleNameChange = function(val) {
         authState.name = (val || '').trim();
-        checkAndUnlockEmail();
+        checkAndUnlockContact();
     };
 
     window.setGovType = function(type) {
@@ -1027,6 +1066,7 @@
         authState.ministry = '';
         authState.department = '';
         authState.designation = '';
+        authState.mobile = '';
         authState.email = '';
 
         const btnCentral = document.getElementById('btnGovCentral');
@@ -1085,7 +1125,7 @@
             desSelect.innerHTML = `<option value="">-- Select Department first --</option>`;
         }
 
-        checkAndUnlockEmail();
+        checkAndUnlockContact();
     };
 
     // When Ministry is selected -> Unlock & Populate Department
@@ -1093,6 +1133,7 @@
         authState.ministry = (val || '').trim();
         authState.department = '';
         authState.designation = '';
+        authState.mobile = '';
         authState.email = '';
 
         const deptSelect = document.getElementById('regDepartmentSelect');
@@ -1122,13 +1163,14 @@
             desSelect.innerHTML = `<option value="">-- Select Department first --</option>`;
         }
 
-        checkAndUnlockEmail();
+        checkAndUnlockContact();
     };
 
     // When Department is selected -> Unlock & Populate Designation
     window.handleDepartmentChange = function(val) {
         authState.department = (val || '').trim();
         authState.designation = '';
+        authState.mobile = '';
         authState.email = '';
 
         const desSelect = document.getElementById('regDesignationSelect');
@@ -1151,61 +1193,51 @@
             }
         }
 
-        checkAndUnlockEmail();
+        checkAndUnlockContact();
     };
 
-    // When Designation is selected -> Check & Unlock Email
+    // When Designation is selected -> Check & Unlock Mobile & Email
     window.handleDesignationChange = function(val) {
         authState.designation = (val || '').trim();
-        checkAndUnlockEmail();
+        checkAndUnlockContact();
     };
 
-    window.checkAndUnlockEmail = function() {
-        const emailUnlocked = isAllPriorFilled();
+    window.checkAndUnlockContact = function() {
+        const contactUnlocked = isAllPriorFilled();
+        const mobileInput = document.getElementById('regOfficialMobile');
         const emailInput = document.getElementById('regOfficialEmail');
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
         const errNotice = document.getElementById('step1ErrorNotice');
 
         if (errNotice) errNotice.classList.add('hidden');
 
+        if (mobileInput) {
+            if (contactUnlocked) {
+                mobileInput.removeAttribute('disabled');
+                mobileInput.className = "w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600";
+            } else {
+                mobileInput.value = '';
+                authState.mobile = '';
+                mobileInput.setAttribute('disabled', 'true');
+                mobileInput.className = "w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed rounded-r-lg text-xs font-mono font-bold focus:outline-none";
+            }
+        }
+
         if (emailInput) {
-            if (emailUnlocked) {
+            if (contactUnlocked) {
                 emailInput.removeAttribute('disabled');
                 emailInput.className = "w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600";
-                emailInput.placeholder = "e.g. officer@nic.in or yourname@gmail.com";
-                emailInput.focus();
             } else {
                 emailInput.value = '';
                 authState.email = '';
                 emailInput.setAttribute('disabled', 'true');
                 emailInput.className = "w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed rounded-lg text-xs font-medium focus:outline-none";
-                emailInput.placeholder = "Fill all fields above to enter email";
             }
         }
 
-        handleEmailChange(emailInput ? emailInput.value : '');
-    };
-
-    window.handleEmailChange = function(val) {
-        authState.email = (val || '').trim();
-        const emailInput = document.getElementById('regOfficialEmail');
-        const emailErrEl = document.getElementById('step1EmailError');
-        const sendOtpBtn = document.getElementById('sendOtpBtn');
-
-        const priorFilled = isAllPriorFilled();
-        const emailValid = isValidEmail(authState.email);
-
-        if (emailErrEl && emailInput) {
-            if (authState.email !== '' && !emailValid) {
-                emailErrEl.classList.remove('hidden');
-                emailInput.classList.add('border-red-500', 'ring-1', 'ring-red-500');
-            } else {
-                emailErrEl.classList.add('hidden');
-                emailInput.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
-            }
-        }
-
+        const canSend = isStep1Valid() && !authState.isSendingOtp;
         if (sendOtpBtn) {
-            if (priorFilled && emailValid && !authState.isSendingOtp) {
+            if (canSend) {
                 sendOtpBtn.removeAttribute('disabled');
                 sendOtpBtn.className = "w-full py-2.5 bg-[#0077d6] hover:bg-[#0066cc] text-white font-bold rounded-lg text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2";
             } else {
@@ -1215,13 +1247,103 @@
         }
     };
 
+    window.handleMobileChange = function(val) {
+        const clean = (val || '').replace(/\D/g, '').slice(0, 10);
+        authState.mobile = clean;
+        const mobileInput = document.getElementById('regOfficialMobile');
+        if (mobileInput && mobileInput.value !== clean) {
+            mobileInput.value = clean;
+        }
+
+        const badge = document.getElementById('mobileCountBadge');
+        if (badge) {
+            badge.textContent = `${clean.length}/10 digits`;
+            badge.className = clean.length === 10 ? "text-[10px] font-bold text-emerald-600" : "text-[10px] font-semibold text-slate-400";
+        }
+
+        const mobileErr = document.getElementById('step1MobileError');
+        if (mobileErr) {
+            if (clean.length > 0 && (clean.length < 10 || !/^[6-9]/.test(clean))) {
+                mobileErr.classList.remove('hidden');
+                if (!/^[6-9]/.test(clean)) {
+                    mobileErr.innerHTML = '<i class="fa-solid fa-circle-exclamation text-xs"></i> Mobile number must start with 6, 7, 8, or 9';
+                } else {
+                    mobileErr.innerHTML = '<i class="fa-solid fa-circle-exclamation text-xs"></i> Please enter all 10 digits';
+                }
+            } else {
+                mobileErr.classList.add('hidden');
+            }
+        }
+
+        checkAndUnlockContact();
+    };
+
+    window.handleEmailChange = function(val) {
+        authState.email = (val || '').trim();
+        const emailErrEl = document.getElementById('step1EmailError');
+
+        if (emailErrEl) {
+            if (authState.email.length > 0 && !isValidEmail(authState.email)) {
+                emailErrEl.classList.remove('hidden');
+            } else {
+                emailErrEl.classList.add('hidden');
+            }
+        }
+
+        checkAndUnlockContact();
+    };
+
     window.quickFillOtp = function(code) {
         const otpEl = document.getElementById('regEmailOtp');
         if (otpEl) {
             otpEl.value = code;
             authState.otp = code;
+            authState.step2Error = null;
+            const errNotice = document.getElementById('step2ErrorNotice');
+            if (errNotice) errNotice.classList.add('hidden');
+            otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
             updateStep2State();
         }
+    };
+
+    window.clearAndRetryOtp = function() {
+        authState.otp = '';
+        authState.step2Error = null;
+        const otpEl = document.getElementById('regEmailOtp');
+        if (otpEl) {
+            otpEl.value = '';
+            otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
+            otpEl.focus();
+        }
+        const errNotice = document.getElementById('step2ErrorNotice');
+        if (errNotice) errNotice.classList.add('hidden');
+        updateStep2State();
+    };
+
+    window.handleOtpInputChange = function(val) {
+        const clean = (val || '').replace(/\D/g, '').slice(0, 6);
+        authState.otp = clean;
+        const otpEl = document.getElementById('regEmailOtp');
+        if (otpEl && otpEl.value !== clean) {
+            otpEl.value = clean;
+        }
+
+        const countEl = document.getElementById('otpCharCount');
+        if (countEl) {
+            countEl.textContent = `${clean.length}/6 digits`;
+            countEl.className = clean.length === 6 ? "text-[10px] font-bold text-emerald-600" : "text-[10px] font-bold text-slate-400";
+        }
+
+        if (authState.step2Error) {
+            authState.step2Error = null;
+            const errNotice = document.getElementById('step2ErrorNotice');
+            if (errNotice) errNotice.classList.add('hidden');
+            if (otpEl) {
+                otpEl.className = "w-full px-3.5 py-3 bg-white border border-blue-400 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner";
+            }
+        }
+
+        updateStep2State();
     };
 
     window.updateStep2State = function() {
@@ -1229,9 +1351,7 @@
         const btn = document.getElementById('verifyOtpBtn');
         if (!otpEl || !btn) return;
 
-        let otp = otpEl.value.replace(/\D/g, '').slice(0, 6);
-        otpEl.value = otp;
-        authState.otp = otp;
+        let otp = (authState.otp || '').replace(/\D/g, '').slice(0, 6);
 
         if (otp.length === 6 && !authState.isVerifyingOtp) {
             btn.removeAttribute('disabled');
@@ -1330,19 +1450,21 @@
         const minSelect = document.getElementById('regMinistrySelect');
         const deptSelect = document.getElementById('regDepartmentSelect');
         const desSelect = document.getElementById('regDesignationSelect');
+        const mobileInput = document.getElementById('regOfficialMobile');
         const emailInput = document.getElementById('regOfficialEmail');
 
         authState.name = nameInput ? nameInput.value.trim() : authState.name;
         authState.ministry = minSelect ? minSelect.value.trim() : authState.ministry;
         authState.department = deptSelect ? deptSelect.value.trim() : authState.department;
         authState.designation = desSelect ? desSelect.value.trim() : authState.designation;
+        authState.mobile = mobileInput ? mobileInput.value.replace(/\D/g, '').slice(0, 10) : authState.mobile;
         authState.email = emailInput ? emailInput.value.trim() : authState.email;
 
         const isPriorValid = isAllPriorFilled();
-        const isEmailValid = isValidEmail(authState.email);
+        const isMobileValid = isValidMobile(authState.mobile);
 
         // STRICT GUARD CLAUSE
-        if (!isPriorValid || !isEmailValid) {
+        if (!isPriorValid || !isMobileValid) {
             const errNotice = document.getElementById('step1ErrorNotice');
             const errText = document.getElementById('step1ErrorText');
 
@@ -1355,8 +1477,8 @@
                 msg = "Please select your Department / Division.";
             } else if (!isDesignationSelected()) {
                 msg = "Please select your Official Designation.";
-            } else if (!isEmailValid) {
-                msg = "Please enter a valid email address format.";
+            } else if (!isMobileValid) {
+                msg = "Please enter a valid 10-digit Indian Mobile Number (e.g. 9876543210).";
             }
 
             if (errText) errText.textContent = msg;
@@ -1366,13 +1488,17 @@
 
         authState.isSendingOtp = true;
         const btnText = document.getElementById('sendOtpBtnText');
-        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending OTP...';
-        handleEmailChange(authState.email);
+        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching SMS OTP...';
+        checkAndUnlockContact();
 
         fetch('/api/auth/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: authState.email, ministry: authState.ministry })
+            body: JSON.stringify({
+                mobile: authState.mobile,
+                email: authState.email,
+                ministry: authState.ministry
+            })
         })
         .then(res => res.json())
         .then(data => {
@@ -1380,6 +1506,8 @@
             if (data.success) {
                 authState.demoOtp = data.otp || '';
                 authState.step = 2;
+                authState.step2Error = null;
+                authState.otp = '';
                 if (window.store) window.store.notify();
                 startResendTimer();
             } else {
@@ -1390,8 +1518,8 @@
                         errText.innerHTML = `
                             <div class="space-y-1.5 py-0.5">
                                 <div class="font-bold text-red-700">${data.error}</div>
-                                <button type="button" onclick="switchToLoginWithEmail('${authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
-                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Switch to Login with this Email →
+                                <button type="button" onclick="switchToLoginWithIdentifier('${authState.mobile || authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Switch to Login with this Number →
                                 </button>
                             </div>
                         `;
@@ -1400,7 +1528,7 @@
                     }
                 }
                 if (errNotice) errNotice.classList.remove('hidden');
-                handleEmailChange(authState.email);
+                checkAndUnlockContact();
             }
         })
         .catch(err => {
@@ -1409,11 +1537,11 @@
             const errText = document.getElementById('step1ErrorText');
             if (errText) errText.textContent = "Network error connecting to backend server.";
             if (errNotice) errNotice.classList.remove('hidden');
-            handleEmailChange(authState.email);
+            checkAndUnlockContact();
         });
     };
 
-    window.switchToLoginWithEmail = function(email) {
+    window.switchToLoginWithIdentifier = function(val) {
         if (window.store) {
             window.store.state.authModalTab = 'login';
             window.store.notify();
@@ -1421,8 +1549,8 @@
         setTimeout(() => {
             const loginEmailInput = document.getElementById('loginEmail');
             if (loginEmailInput) {
-                loginEmailInput.value = email;
-                authState.loginEmail = email;
+                loginEmailInput.value = val;
+                authState.loginEmail = val;
             }
             const loginPwd = document.getElementById('loginPassword');
             if (loginPwd) loginPwd.focus();
@@ -1435,6 +1563,7 @@
         const otpInput = document.getElementById('regEmailOtp');
         if (otpInput) otpInput.value = '';
         authState.otp = '';
+        authState.step2Error = null;
         handleStep1Submit();
     };
 
@@ -1443,7 +1572,7 @@
         if (authState.otp.length !== 6) {
             const errNotice = document.getElementById('step2ErrorNotice');
             const errText = document.getElementById('step2ErrorText');
-            if (errText) errText.textContent = "Please enter all 6 digits of the OTP.";
+            if (errText) errText.textContent = "Please enter all 6 digits of the OTP code.";
             if (errNotice) errNotice.classList.remove('hidden');
             return;
         }
@@ -1453,32 +1582,43 @@
         if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...';
         updateStep2State();
 
+        const identifier = authState.mobile || authState.email;
+
         fetch('/api/auth/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: authState.email, otp: authState.otp })
+            body: JSON.stringify({ identifier: identifier, mobile: authState.mobile, email: authState.email, otp: authState.otp })
         })
         .then(res => res.json())
         .then(data => {
             authState.isVerifyingOtp = false;
             if (data.success) {
+                authState.step2Error = null;
                 currentCaptchaCode = generateCaptchaCode();
                 isRobotChecked = false;
                 authState.step = 3;
                 if (window.store) window.store.notify();
             } else {
+                authState.step2Error = data.error || "Invalid OTP code entered. Please try again.";
                 const errNotice = document.getElementById('step2ErrorNotice');
                 const errText = document.getElementById('step2ErrorText');
-                if (errText) errText.textContent = data.error || "Invalid OTP code. Please try again.";
+                if (errText) errText.textContent = authState.step2Error;
                 if (errNotice) errNotice.classList.remove('hidden');
+
+                const otpInput = document.getElementById('regEmailOtp');
+                if (otpInput) {
+                    otpInput.className = "w-full px-3.5 py-3 bg-red-50 border-2 border-red-500 rounded-xl text-center font-mono font-black text-2xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-red-600 shadow-inner animate-shake";
+                    otpInput.focus();
+                }
                 updateStep2State();
             }
         })
         .catch(err => {
             authState.isVerifyingOtp = false;
+            authState.step2Error = "Network error verifying OTP code.";
             const errNotice = document.getElementById('step2ErrorNotice');
             const errText = document.getElementById('step2ErrorText');
-            if (errText) errText.textContent = "Network error verifying OTP code.";
+            if (errText) errText.textContent = authState.step2Error;
             if (errNotice) errNotice.classList.remove('hidden');
             updateStep2State();
         });
@@ -1515,12 +1655,15 @@
         if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Creating Account...';
         updateStep3State();
 
+        const officialEmail = authState.email || `${authState.mobile}@nic.gov.in`;
+
         fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: authState.name,
-                email: authState.email,
+                mobile: authState.mobile,
+                email: officialEmail,
                 gov_type: authState.govType === 'central' ? 'Central Government' : 'State / UT Government',
                 ministry: authState.ministry,
                 department: authState.department,
@@ -1549,7 +1692,7 @@
                         errText.innerHTML = `
                             <div class="space-y-1.5 py-0.5">
                                 <div class="font-bold text-red-700">${data.error}</div>
-                                <button type="button" onclick="switchToLoginWithEmail('${authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                                <button type="button" onclick="switchToLoginWithIdentifier('${authState.mobile || authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
                                     <i class="fa-solid fa-arrow-right-to-bracket"></i> Log In Now →
                                 </button>
                             </div>
@@ -1586,7 +1729,7 @@
         if (!authState.loginEmail || !authState.loginPassword) {
             const errNotice = document.getElementById('loginErrorNotice');
             const errText = document.getElementById('loginErrorText');
-            if (errText) errText.textContent = "Please enter both email and password.";
+            if (errText) errText.textContent = "Please enter your mobile/email and password.";
             if (errNotice) errNotice.classList.remove('hidden');
             return;
         }
@@ -1609,6 +1752,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                identifier: authState.loginEmail,
                 email: authState.loginEmail,
                 password: authState.loginPassword
             })
@@ -1629,7 +1773,7 @@
             } else {
                 const errNotice = document.getElementById('loginErrorNotice');
                 const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = data.error || "Invalid email or password. Please try again.";
+                if (errText) errText.textContent = data.error || "Invalid mobile/email or password. Please try again.";
                 if (errNotice) errNotice.classList.remove('hidden');
                 refreshCaptcha();
                 updateLoginState();

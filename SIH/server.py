@@ -408,27 +408,43 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
         # ROUTE 1: POST /api/auth/send-otp
         # -------------------------------------------------------------
         if path == "/api/auth/send-otp":
+            mobile = (body.get("mobile") or "").strip()
+            mobile_clean = re.sub(r"\D", "", mobile)
             email = (body.get("email") or "").lower().strip()
             ministry = (body.get("ministry") or "").strip()
 
-            email_pattern = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
-            if not email or not re.match(email_pattern, email):
-                self.send_json({"success": False, "error": "Please enter a valid official email address"}, status_code=400)
+            identifier = None
+            channel = "email"
+
+            if mobile_clean and len(mobile_clean) == 10 and re.match(r"^[6-9]\d{9}$", mobile_clean):
+                identifier = mobile_clean
+                channel = "sms"
+            elif email and re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+                identifier = email
+                channel = "email"
+            else:
+                self.send_json({"success": False, "error": "Please enter a valid 10-digit mobile number (e.g. 9876543210) or official email"}, status_code=400)
                 return
 
             if not ministry or ministry == "-- Select Ministry or Department --":
                 self.send_json({"success": False, "error": "Please select a Ministry or Department"}, status_code=400)
                 return
 
-            # Check if email is already registered in USERS cache or SQLite
+            # Check if mobile or email is already registered in USERS cache or SQLite
             is_already_registered = False
-            if email in USERS:
+            if identifier in USERS:
                 is_already_registered = True
             else:
+                for u in USERS.values():
+                    if u.get("mobile") == mobile_clean or (email and u.get("email") == email):
+                        is_already_registered = True
+                        break
+
+            if not is_already_registered:
                 try:
                     conn = get_db_connection()
                     cursor = conn.cursor()
-                    cursor.execute("SELECT id FROM users WHERE LOWER(email) = ?", (email,))
+                    cursor.execute("SELECT id FROM users WHERE LOWER(email) = ? OR mobile = ?", (email if email else identifier, mobile_clean if mobile_clean else identifier))
                     if cursor.fetchone():
                         is_already_registered = True
                     conn.close()
@@ -439,41 +455,75 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json({
                     "success": False,
                     "alreadyRegistered": True,
-                    "error": "This email address is already registered. Please log in with your official credentials."
+                    "error": f"The {'mobile number +91 ' + mobile_clean if channel == 'sms' else 'email ' + email} is already registered. Please log in with your credentials."
                 }, status_code=400)
                 return
 
             # Generate brand new 6-digit OTP code
             otp = f"{random.randint(100000, 999999)}"
-            OTP_STORE[email] = {
+            OTP_STORE[identifier] = {
                 "otp": otp,
                 "expires": time.time() + 300,
-                "ministry": ministry
+                "ministry": ministry,
+                "mobile": mobile_clean,
+                "email": email,
+                "channel": channel
             }
 
-            send_smtp_otp(email, otp)
-            self.send_json({"success": True, "message": "Verification OTP sent to your email address", "otp": otp})
+            if channel == "email" and email:
+                send_smtp_otp(email, otp)
+            else:
+                print(f"[SMS GATEWAY SIMULATION] >>> Sent 6-digit OTP [{otp}] to mobile +91-{mobile_clean} (MoSPI/iGOT Gov of India) <<<")
+
+            self.send_json({
+                "success": True,
+                "message": f"Verification OTP code sent successfully to +91 {mobile_clean}" if channel == "sms" else "Verification OTP sent to your email address",
+                "otp": otp,
+                "identifier": identifier,
+                "mobile": mobile_clean,
+                "email": email,
+                "channel": channel
+            })
             return
 
         # -------------------------------------------------------------
         # ROUTE 2: POST /api/auth/verify-otp
         # -------------------------------------------------------------
         elif path == "/api/auth/verify-otp":
-            email = (body.get("email") or "").lower().strip()
+            identifier = (body.get("identifier") or body.get("mobile") or body.get("email") or "").lower().strip()
+            if not identifier:
+                identifier = (body.get("email") or "").lower().strip()
+            identifier_clean = re.sub(r"\D", "", identifier) if re.match(r"^\d{10}$", identifier) else identifier
+
             otp = str(body.get("otp") or "").strip()
 
-            if not email or not otp:
-                self.send_json({"success": False, "error": "Email and 6-digit OTP are required"}, status_code=400)
+            if not identifier or not otp:
+                self.send_json({"success": False, "error": "Mobile/Email identifier and 6-digit OTP are required"}, status_code=400)
                 return
 
-            record = OTP_STORE.get(email)
+            record = OTP_STORE.get(identifier) or OTP_STORE.get(identifier_clean)
+            if not record:
+                # Also search values
+                for k, v in OTP_STORE.items():
+                    if v.get("mobile") == identifier_clean or v.get("email") == identifier:
+                        record = v
+                        identifier = k
+                        break
+
             if not record or record["otp"] != otp or time.time() > record["expires"]:
-                self.send_json({"success": False, "error": "Invalid or expired OTP. Please try again or resend code."}, status_code=400)
+                self.send_json({"success": False, "error": "Invalid OTP code entered. Please re-enter the code or request a new OTP."}, status_code=400)
                 return
 
-            VERIFIED_EMAILS.add(email)
-            del OTP_STORE[email]
-            self.send_json({"success": True, "message": "OTP verified successfully"})
+            VERIFIED_EMAILS.add(identifier)
+            if record.get("mobile"):
+                VERIFIED_EMAILS.add(record["mobile"])
+            if record.get("email"):
+                VERIFIED_EMAILS.add(record["email"])
+
+            if identifier in OTP_STORE:
+                del OTP_STORE[identifier]
+
+            self.send_json({"success": True, "message": "OTP verification successful"})
             return
 
         # -------------------------------------------------------------
@@ -481,6 +531,7 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
         # -------------------------------------------------------------
         elif path in ["/api/auth/register", "/api/register"]:
             email = (body.get("email") or "").lower().strip()
+            mobile = re.sub(r"\D", "", str(body.get("mobile") or ""))
             name = (body.get("name") or "").strip()
             ministry = (body.get("ministry") or "Ministry of Statistics & Programme Implementation (MoSPI)").strip()
             department = (body.get("department") or ministry).strip()
@@ -488,16 +539,19 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             org_type = (body.get("gov_type") or body.get("org_type") or "Central Government").strip()
             password = body.get("password") or ""
 
+            if not email and mobile:
+                email = f"{mobile}@nic.gov.in"
+
             if not email:
-                self.send_json({"success": False, "error": "Email address is required for registration"}, status_code=400)
+                self.send_json({"success": False, "error": "Email address or 10-digit mobile number is required"}, status_code=400)
                 return
 
-            if email not in VERIFIED_EMAILS:
-                self.send_json({"success": False, "error": "Email verification via OTP is required before registration"}, status_code=400)
+            if email not in VERIFIED_EMAILS and mobile not in VERIFIED_EMAILS:
+                self.send_json({"success": False, "error": "Mobile or Email verification via OTP is required before registration"}, status_code=400)
                 return
 
             if email in USERS:
-                self.send_json({"success": False, "error": "An account with this email is already registered. Please log in."}, status_code=400)
+                self.send_json({"success": False, "error": "An account with this email/mobile is already registered. Please log in."}, status_code=400)
                 return
 
             # Password Strength Validation: min 8 chars, 1 letter, 1 number
@@ -517,6 +571,7 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             user_record = {
                 "id": f"usr_{secrets.token_hex(6)}",
                 "email": email,
+                "mobile": mobile,
                 "name": user_name,
                 "ministry": ministry,
                 "department": department,
@@ -540,12 +595,12 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO users 
-                    (name, email, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (user_name, email, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation))
+                    (name, email, mobile, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user_name, email, mobile, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation))
                 conn.commit()
                 conn.close()
-                print(f"[DB Success] Registered new user '{user_name}' ({email}) into SQLite.")
+                print(f"[DB Success] Registered new user '{user_name}' ({email}, mobile: {mobile}) into SQLite.")
             except Exception as e:
                 print(f"[DB Warning] Could not persist registration to SQLite: {e}")
 
@@ -558,17 +613,24 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
         # ROUTE 4: POST /api/auth/login
         # -------------------------------------------------------------
         elif path == "/api/auth/login":
-            email = (body.get("email") or "").lower().strip()
+            identifier = (body.get("email") or body.get("identifier") or body.get("mobile") or "").lower().strip()
+            identifier_clean = re.sub(r"\D", "", identifier)
             password = body.get("password") or ""
 
-            user = USERS.get(email)
+            user = USERS.get(identifier)
 
-            # Fallback check against SQLite users table if not in USERS dict
+            if not user and identifier_clean and len(identifier_clean) == 10:
+                for u in USERS.values():
+                    if u.get("mobile") == identifier_clean:
+                        user = u
+                        break
+
+            # Fallback check against SQLite users table
             if not user:
                 try:
                     conn = get_db_connection()
                     cursor = conn.cursor()
-                    cursor.execute("SELECT * FROM users WHERE LOWER(email) = ?", (email,))
+                    cursor.execute("SELECT * FROM users WHERE LOWER(email) = ? OR mobile = ?", (identifier, identifier_clean if len(identifier_clean) == 10 else identifier))
                     row = cursor.fetchone()
                     conn.close()
                     if row:
@@ -576,6 +638,7 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                         user = {
                             "id": str(u["id"]),
                             "email": u["email"],
+                            "mobile": u.get("mobile") or "",
                             "name": u["name"],
                             "ministry": u.get("ministry_id") or "Ministry of Statistics & Programme Implementation",
                             "department": u.get("department") or "National Statistical Office (NSO)",
