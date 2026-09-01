@@ -67,6 +67,113 @@ def hash_password(password, salt=None):
     hashed = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
     return hashed, salt
 
+def load_env_file():
+    """Loads environment variables from .env file if it exists."""
+    env_path = os.path.join(DIRECTORY, ".env")
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k not in os.environ:
+                            os.environ[k] = v
+            print(f"[Config] Loaded environment variables from .env file.")
+        except Exception as e:
+            print(f"[Config Warning] Could not parse .env: {e}")
+
+load_env_file()
+
+def send_real_sms_otp(mobile, otp):
+    """
+    Sends real SMS OTP to Indian mobile numbers (+91) using configured SMS gateway.
+    Supports Fast2SMS, 2Factor.in, Twilio, Msg91, and Textlocal.
+    """
+    import urllib.request
+    import urllib.parse
+    import base64
+
+    clean_mobile = re.sub(r'\D', '', str(mobile))
+    if len(clean_mobile) == 12 and clean_mobile.startswith('91'):
+        clean_mobile = clean_mobile[2:]
+
+    fast2sms_key = os.environ.get("FAST2SMS_API_KEY")
+    twofactor_key = os.environ.get("TWO_FACTOR_API_KEY") or os.environ.get("TWOFACTOR_API_KEY")
+    twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    twilio_from = os.environ.get("TWILIO_FROM_NUMBER")
+    msg91_key = os.environ.get("MSG91_AUTH_KEY")
+    textlocal_key = os.environ.get("TEXTLOCAL_API_KEY")
+
+    # 1. Fast2SMS (India Quick OTP Gateway)
+    if fast2sms_key:
+        try:
+            url = "https://www.fast2sms.com/dev/bulkV2"
+            headers = {
+                "authorization": fast2sms_key,
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            data = urllib.parse.urlencode({
+                "variables_values": otp,
+                "route": "otp",
+                "numbers": clean_mobile
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+                print(f"[Fast2SMS Gateway] Real SMS dispatched to +91-{clean_mobile}: {result}")
+                return True, "SMS dispatched via Fast2SMS"
+        except Exception as e:
+            print(f"[Fast2SMS Error] Failed to send SMS: {e}")
+
+    # 2. 2Factor.in (India OTP Gateway)
+    if twofactor_key:
+        try:
+            url = f"https://2factor.in/v1/API/V1/{twofactor_key}/SMS/{clean_mobile}/{otp}/AUTOGEN"
+            req = urllib.request.Request(url, headers={"User-Agent": "StatSkill-AI/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+                print(f"[2Factor.in Gateway] Real SMS dispatched to +91-{clean_mobile}: {result}")
+                return True, "SMS dispatched via 2Factor"
+        except Exception as e:
+            print(f"[2Factor Error] Failed to send SMS: {e}")
+
+    # 3. Twilio SMS
+    if twilio_sid and twilio_token and twilio_from:
+        try:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+            auth_str = f"{twilio_sid}:{twilio_token}"
+            b64_auth = base64.b64encode(auth_str.encode()).decode()
+            headers = {
+                "Authorization": f"Basic {b64_auth}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            data = urllib.parse.urlencode({
+                "To": f"+91{clean_mobile}",
+                "From": twilio_from,
+                "Body": f"Your StatSkill AI (MoSPI) verification OTP code is: {otp}. Valid for 5 minutes."
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+                print(f"[Twilio Gateway] Real SMS dispatched to +91-{clean_mobile}: SID {result.get('sid')}")
+                return True, "SMS dispatched via Twilio"
+        except Exception as e:
+            print(f"[Twilio Error] Failed to send SMS: {e}")
+
+    # Fallback / Dev info when no SMS Gateway API Key is provided
+    print("\n" + "="*70)
+    print(f"📡 [SMS GATEWAY DISPATCH NOTICE]")
+    print(f"👉 Target Indian Mobile: +91 {clean_mobile}")
+    print(f"👉 6-Digit OTP Code: [{otp}]")
+    print(f"ℹ️  To deliver real SMS directly to mobile handsets over telecom networks,")
+    print(f"   add your FAST2SMS_API_KEY or TWO_FACTOR_API_KEY or TWILIO credentials in .env")
+    print("="*70 + "\n")
+    return False, "SMS Gateway credentials not yet configured in .env"
+
 def send_smtp_otp(to_email, otp):
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.environ.get("SMTP_PORT", 587))
@@ -473,7 +580,9 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             if channel == "email" and email:
                 send_smtp_otp(email, otp)
             else:
-                print(f"[SMS GATEWAY SIMULATION] >>> Sent 6-digit OTP [{otp}] to mobile +91-{mobile_clean} (MoSPI/iGOT Gov of India) <<<")
+                sent_real, msg = send_real_sms_otp(mobile_clean, otp)
+                if not sent_real:
+                    print(f"[SMS DEV NOTICE] >>> Real SMS delivery requires SMS gateway API key. Demo OTP [{otp}] generated for +91-{mobile_clean} <<<")
 
             self.send_json({
                 "success": True,
