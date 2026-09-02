@@ -377,6 +377,12 @@ def row_to_user_dict(u):
         "location": u.get("location") or "",
         "profileCompleted": bool(u.get("profile_completed", 0)),
         "profile_completed": u.get("profile_completed", 0),
+        "roleGrade": u.get("role_grade") or "R3",
+        "role_grade": u.get("role_grade") or "R3",
+        "sectorTag": u.get("sector_tag") or "Official Statistics",
+        "sector_tag": u.get("sector_tag") or "Official Statistics",
+        "d6Competencies": u.get("d6_competencies") or "",
+        "d6_competencies": u.get("d6_competencies") or "",
         "overallScore": u.get("overall_score") or 68,
         "learningHours": float(u.get("learning_hours") or 42.5),
         "assessmentsCompleted": u.get("assessments_completed") or 12,
@@ -729,6 +735,10 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 designation = str(designation_raw).strip()
             if "[object Object]" in designation or not designation:
                 designation = "Senior Statistical Officer (SSO)"
+            
+            role_grade = (body.get("role_grade") or body.get("roleGrade") or body.get("grade") or "R3").strip()
+            sector_tag = (body.get("sector_tag") or body.get("sectorTag") or "Official Statistics").strip()
+            d6_competencies = (body.get("d6_competencies") or body.get("d6Competencies") or "").strip()
             password = body.get("password") or ""
 
             if not email and mobile:
@@ -769,6 +779,12 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 "department": department,
                 "designation": designation,
                 "role": designation,
+                "roleGrade": role_grade,
+                "role_grade": role_grade,
+                "sectorTag": sector_tag,
+                "sector_tag": sector_tag,
+                "d6Competencies": d6_competencies,
+                "d6_competencies": d6_competencies,
                 "employeeId": official_id,
                 "employee_id": official_id,
                 "org_type": org_type,
@@ -808,13 +824,15 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("""
                     INSERT OR REPLACE INTO users 
                     (name, email, mobile, password_hash, salt, role, employee_id, org_type, ministry_id, department, organisation, designation,
-                     experience_years, degree, specialization, statistical_domains, previous_roles, projects_handled, technical_qualifications, training_programmes, current_assignment, location, profile_completed)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     experience_years, degree, specialization, statistical_domains, previous_roles, projects_handled, technical_qualifications, training_programmes, current_assignment, location, profile_completed,
+                     role_grade, sector_tag, d6_competencies)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (user_name, email, mobile, hashed, salt, "learner", official_id, org_type, ministry, department, "org_sdrd", designation,
-                      None, "", "", "", "", "", "", "", "", "", 0))
+                      None, "", "", "", "", "", "", "", "", "", 0,
+                      role_grade, sector_tag, d6_competencies))
                 conn.commit()
                 conn.close()
-                print(f"[DB Success] Registered new user '{user_name}' ({email}, mobile: {mobile}) into SQLite.")
+                print(f"[DB Success] Registered new user '{user_name}' ({email}, mobile: {mobile}, grade: {role_grade}, sector: {sector_tag}) into SQLite.")
             except Exception as e:
                 print(f"[DB Warning] Could not persist registration to SQLite: {e}")
 
@@ -1097,6 +1115,9 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                 training_programmes = ", ".join(training_programmes)
             current_assignment = body.get("currentAssignment") or body.get("current_assignment") or "Survey Design & Research Division (SDRD), PLFS & Price Indices"
             location = body.get("location") or "Sankhyiki Bhawan, New Delhi"
+            role_grade = body.get("role_grade") or body.get("roleGrade") or body.get("grade")
+            sector_tag = body.get("sector_tag") or body.get("sectorTag")
+            d6_competencies = body.get("d6_competencies") or body.get("d6Competencies")
 
             # Update SQLite database
             try:
@@ -1108,6 +1129,9 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                         ministry_id = COALESCE(?, ministry_id),
                         department = COALESCE(?, department),
                         designation = COALESCE(?, designation),
+                        role_grade = COALESCE(?, role_grade),
+                        sector_tag = COALESCE(?, sector_tag),
+                        d6_competencies = COALESCE(?, d6_competencies),
                         experience_years = ?, 
                         degree = ?, 
                         specialization = ?, 
@@ -1125,6 +1149,9 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
                     ministry if (ministry and ministry.strip()) else None,
                     department if (department and department.strip()) else None,
                     designation if (designation and designation.strip()) else None,
+                    role_grade if (role_grade and role_grade.strip()) else None,
+                    sector_tag if (sector_tag and sector_tag.strip()) else None,
+                    d6_competencies if (d6_competencies and d6_competencies.strip()) else None,
                     experience_years, degree, specialization, statistical_domains,
                     previous_roles, projects_handled, technical_qualifications,
                     training_programmes, current_assignment, location,

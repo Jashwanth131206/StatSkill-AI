@@ -25,6 +25,9 @@
         ministry: '',
         department: '',
         designation: '',
+        roleGrade: 'R3',
+        sectorTag: 'Official Statistics',
+        d6Competencies: '',
         mobile: '',
         email: '',
         otp: '',
@@ -224,6 +227,9 @@
             ministry: '',
             department: '',
             designation: '',
+            roleGrade: 'R3',
+            sectorTag: 'Official Statistics',
+            d6Competencies: '',
             mobile: '',
             email: '',
             otp: '',
@@ -334,6 +340,12 @@
 
     function getDesignationList(govType, ministryName, departmentName) {
         if (!departmentName || departmentName.startsWith('--')) return [];
+        if (typeof window.getDesignationsForDepartment === 'function') {
+            const frameworkRoles = window.getDesignationsForDepartment(departmentName);
+            if (frameworkRoles && frameworkRoles.length > 0) {
+                return frameworkRoles;
+            }
+        }
         if (window.OrgDataService && typeof window.OrgDataService.getDesignations === 'function') {
             const roles = window.OrgDataService.getDesignations(govType, ministryName, departmentName);
             if (roles && roles.length > 0) {
@@ -344,18 +356,12 @@
             }
         }
         return [
-            "Junior Statistical Officer (JSO) — SSS Cadre",
-            "Senior Statistical Officer (SSO) — SSS Cadre",
-            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
-            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
-            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
-            "Director (Survey Design / Official Statistics) — ISS Cadre",
-            "Deputy Director General (DDG - Statistical Cadre)",
-            "Additional Director General (ADG - Official Statistics)",
-            "Director General (NSO / Central Statistical System)",
-            "District Statistical Officer (DSO) — State DES",
-            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
-            "Statistical Investigator / Survey Field Officer (FOD)"
+            { grade: "R1", title: "Field Enumerator / Data Collector", fullTitle: "R1 — Field Enumerator / Data Collector", tier: "Entry", exp: "0–2 Years", sectorTag: "Official Statistics", d6Competencies: [] },
+            { grade: "R2", title: "Statistical Supervisor", fullTitle: "R2 — Statistical Supervisor", tier: "Entry / Junior", exp: "2–4 Years", sectorTag: "Official Statistics", d6Competencies: [] },
+            { grade: "R3", title: "Assistant Director (Statistics)", fullTitle: "R3 — Assistant Director (Statistics)", tier: "Junior", exp: "3–7 Years", sectorTag: "Official Statistics", d6Competencies: [] },
+            { grade: "R4", title: "Deputy Director (Statistics)", fullTitle: "R4 — Deputy Director (Statistics)", tier: "Senior", exp: "7–10 Years", sectorTag: "Official Statistics", d6Competencies: [] },
+            { grade: "R5", title: "Director (Statistics)", fullTitle: "R5 — Director (Statistics)", tier: "Senior", exp: "10–15 Years", sectorTag: "Official Statistics", d6Competencies: [] },
+            { grade: "R6", title: "Additional DG / Statistical Adviser", fullTitle: "R6 — Additional DG / Statistical Adviser", tier: "Leadership", exp: "15+ Years", sectorTag: "Official Statistics", d6Competencies: [] }
         ];
     }
 
@@ -868,16 +874,50 @@
                 </select>
             </div>
 
-            <!-- 5. Designation (LOCKED until Department is selected) -->
+            <!-- 5. Framework Cadre Role Grade & Official Designation -->
             <div class="space-y-1">
-                <label class="block text-xs font-bold text-slate-700">5. Designation <span class="text-red-500">*</span></label>
-                <select id="regDesignationSelect" required ${!deptSelected ? 'disabled' : ''} onchange="handleDesignationChange(this.value)" class="w-full px-3 py-2 ${deptSelected ? 'bg-white border-slate-300 text-slate-800 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <option value="">${deptSelected ? '-- Select Designation --' : '-- Select Department first --'}</option>
-                    ${designationOptions.map(des => `
-                        <option value="${des}" ${authState.designation === des ? 'selected' : ''}>${des}</option>
-                    `).join('')}
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700">5. Cadre Role Grade & Designation <span class="text-red-500">*</span></label>
+                    ${deptSelected ? `<span class="text-[10px] text-blue-700 font-extrabold bg-blue-50 px-2 py-0.5 rounded border border-blue-200"><i class="fa-solid fa-layer-group text-blue-600"></i> Framework R1–R6 Ladder</span>` : ''}
+                </div>
+                <select id="regDesignationSelect" required ${!deptSelected ? 'disabled' : ''} onchange="handleDesignationChange(this.value, this)" class="w-full px-3 py-2 ${deptSelected ? 'bg-white border-slate-300 text-slate-800 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <option value="">${deptSelected ? '-- Select Official Role Grade (R1–R6) --' : '-- Select Department first --'}</option>
+                    ${designationOptions.map(des => {
+                        const val = typeof des === 'object' ? (des.title || des.name) : des;
+                        const grade = typeof des === 'object' ? (des.grade || 'R3') : 'R3';
+                        const tier = typeof des === 'object' ? (des.tier || 'Junior') : 'Junior';
+                        const exp = typeof des === 'object' ? (des.exp || '3–7 Yrs') : '';
+                        const sector = typeof des === 'object' ? (des.sectorTag || 'Official Statistics') : 'Official Statistics';
+                        const d6 = typeof des === 'object' ? (des.d6Competencies || []).join(', ') : '';
+                        const isSelected = authState.designation === val || (typeof des === 'object' && des.fullTitle === authState.designation);
+                        const display = typeof des === 'object' ? `${des.grade} — ${des.title} [${des.tier} Cadre: ${exp}]` : des;
+                        return `<option value="${val}" data-grade="${grade}" data-tier="${tier}" data-sector="${sector}" data-d6="${d6}" ${isSelected ? 'selected' : ''}>${display}</option>`;
+                    }).join('')}
                 </select>
             </div>
+
+            <!-- Framework Role & Competencies Preview Card -->
+            ${(deptSelected && authState.designation) ? `
+                <div id="frameworkCadrePreview" class="p-2.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200 rounded-xl text-xs space-y-1.5 animate-fadeIn shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-blue-600"></i>
+                            Role Grade: <span class="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-extrabold uppercase">${authState.roleGrade || 'R3'}</span>
+                        </span>
+                        <span class="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            Sector: <b class="text-blue-700">${authState.sectorTag || 'Official Statistics'}</b>
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-slate-600">
+                        <span class="font-semibold text-slate-700">D6 Sectoral Competencies:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${(authState.d6Competencies ? authState.d6Competencies.split(', ') : ['General Statistical Methodology', 'Data Quality Validation']).map(c => `
+                                <span class="px-2 py-0.5 bg-white border border-blue-200 text-blue-800 rounded-md text-[10px] font-semibold">${c}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
 
             <!-- 6. Official 10-Digit Mobile Number -->
             <div class="space-y-1 pt-0.5">
@@ -1214,6 +1254,17 @@
         authState.mobile = '';
         authState.email = '';
 
+        if (typeof window.getDepartmentFrameworkConfig === 'function') {
+            const cfg = window.getDepartmentFrameworkConfig(authState.department);
+            if (cfg) {
+                authState.sectorTag = cfg.sectorTag || 'Official Statistics';
+                authState.d6Competencies = (cfg.d6Competencies || []).join(', ');
+            }
+        }
+
+        const previewEl = document.getElementById('frameworkCadrePreview');
+        if (previewEl) previewEl.remove();
+
         const desSelect = document.getElementById('regDesignationSelect');
         const deptSelected = isDepartmentSelected();
 
@@ -1223,8 +1274,17 @@
                 desSelect.removeAttribute('disabled');
                 desSelect.className = "w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer";
                 desSelect.innerHTML = `
-                    <option value="">-- Select Designation --</option>
-                    ${desigs.map(des => `<option value="${des}">${des}</option>`).join('')}
+                    <option value="">-- Select Official Role Grade (R1–R6) --</option>
+                    ${desigs.map(des => {
+                        const val = typeof des === 'object' ? (des.title || des.name) : des;
+                        const grade = typeof des === 'object' ? (des.grade || 'R3') : 'R3';
+                        const tier = typeof des === 'object' ? (des.tier || 'Junior') : 'Junior';
+                        const exp = typeof des === 'object' ? (des.exp || '3–7 Yrs') : '';
+                        const sector = typeof des === 'object' ? (des.sectorTag || 'Official Statistics') : 'Official Statistics';
+                        const d6 = typeof des === 'object' ? (des.d6Competencies || []).join(', ') : '';
+                        const display = typeof des === 'object' ? `${des.grade} — ${des.title} [${des.tier} Cadre: ${exp}]` : des;
+                        return `<option value="${val}" data-grade="${grade}" data-tier="${tier}" data-sector="${sector}" data-d6="${d6}">${display}</option>`;
+                    }).join('')}
                 `;
                 desSelect.focus();
             } else {
@@ -1237,9 +1297,64 @@
         checkAndUnlockContact();
     };
 
-    // When Designation is selected -> Check & Unlock Mobile & Email
-    window.handleDesignationChange = function(val) {
+    // When Designation is selected -> Check & Unlock Mobile & Email, and Render Framework Preview
+    window.handleDesignationChange = function(val, selectEl) {
         authState.designation = (val || '').trim();
+
+        const sel = selectEl || document.getElementById('regDesignationSelect');
+        if (sel && sel.selectedIndex >= 0) {
+            const opt = sel.options[sel.selectedIndex];
+            if (opt) {
+                authState.roleGrade = opt.getAttribute('data-grade') || 'R3';
+                authState.sectorTag = opt.getAttribute('data-sector') || 'Official Statistics';
+                authState.d6Competencies = opt.getAttribute('data-d6') || '';
+            }
+        }
+
+        if (!authState.sectorTag || authState.sectorTag === 'Official Statistics') {
+            if (typeof window.getDepartmentFrameworkConfig === 'function') {
+                const cfg = window.getDepartmentFrameworkConfig(authState.department);
+                if (cfg) {
+                    authState.sectorTag = cfg.sectorTag || 'Official Statistics';
+                    authState.d6Competencies = (cfg.d6Competencies || []).join(', ');
+                }
+            }
+        }
+
+        // Dynamically update or mount framework preview card below designation
+        let previewEl = document.getElementById('frameworkCadrePreview');
+        if (previewEl) previewEl.remove();
+
+        if (authState.designation && authState.department && sel) {
+            const desigContainer = sel.closest('.space-y-1');
+            if (desigContainer) {
+                const d6List = authState.d6Competencies ? authState.d6Competencies.split(', ') : ['General Statistical Methodology', 'Data Quality Validation'];
+                const card = document.createElement('div');
+                card.id = 'frameworkCadrePreview';
+                card.className = 'p-2.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200 rounded-xl text-xs space-y-1.5 animate-fadeIn shadow-xs mt-1.5';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-blue-600"></i>
+                            Role Grade: <span class="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-extrabold uppercase">${authState.roleGrade || 'R3'}</span>
+                        </span>
+                        <span class="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            Sector: <b class="text-blue-700">${authState.sectorTag || 'Official Statistics'}</b>
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-slate-600">
+                        <span class="font-semibold text-slate-700">D6 Sectoral Competencies:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${d6List.map(c => `
+                                <span class="px-2 py-0.5 bg-white border border-blue-200 text-blue-800 rounded-md text-[10px] font-semibold">${c}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                desigContainer.after(card);
+            }
+        }
+
         checkAndUnlockContact();
     };
 
@@ -1823,6 +1938,9 @@
                 ministry: authState.ministry,
                 department: authState.department,
                 designation: cleanDesig,
+                role_grade: authState.roleGrade || 'R3',
+                sector_tag: authState.sectorTag || 'Official Statistics',
+                d6_competencies: authState.d6Competencies || '',
                 password: authState.password
             })
         })

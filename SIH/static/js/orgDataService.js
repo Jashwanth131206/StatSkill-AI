@@ -479,20 +479,376 @@
         return Array.from(new Set(list));
     };
 
+    // 4. DEPARTMENT FRAMEWORK CONFIGURATION (From Framework PDF & Markdown)
+    const DEPARTMENT_FRAMEWORK_MAP = {
+        // Ministry of Jal Shakti
+        "Minor Irrigation Census & Water Bodies Directorate": {
+            sectorTag: "Water Resources",
+            d6Competencies: ["Minor Irrigation Census Methodology", "Water Body Enumeration Standards"],
+            ministry: "Ministry of Jal Shakti"
+        },
+        "National Minor Irrigation Census & Groundwater Data Division": {
+            sectorTag: "Groundwater Data",
+            d6Competencies: ["Groundwater Level Monitoring", "Aquifer Data Classification"],
+            ministry: "Ministry of Jal Shakti"
+        },
+        "Census of Water Bodies & Geo-Tagging Survey Unit": {
+            sectorTag: "Geo-Water Survey",
+            d6Competencies: ["GPS/Geo-tagging Protocols", "Water Body Inventory Standards"],
+            ministry: "Ministry of Jal Shakti"
+        },
+        "Central Water Commission (CWC) — Hydrological & Water Statistics": {
+            sectorTag: "Hydrology",
+            d6Competencies: ["Hydrological Data Analysis", "River/Reservoir Flow Statistics"],
+            ministry: "Ministry of Jal Shakti"
+        },
+
+        // Ministry of Education
+        "Statistics & Educational Survey Division": {
+            sectorTag: "Education",
+            d6Competencies: ["School Survey Methodology", "Enrollment/Dropout Indicators"],
+            ministry: "Ministry of Education"
+        },
+        "AISHE Data Analytics Cell": {
+            sectorTag: "Higher Education",
+            d6Competencies: ["Higher-Ed Survey Standards (AISHE)", "Institution-level Data Validation"],
+            ministry: "Ministry of Education"
+        },
+        "UDISE+ Data Directorate": {
+            sectorTag: "School Data Systems",
+            d6Competencies: ["UDISE+ Schema & Codes", "School Infrastructure Indicators"],
+            ministry: "Ministry of Education"
+        },
+        "PGI & NAS Unit": {
+            sectorTag: "Learning Outcomes",
+            d6Competencies: ["Performance Grading Index Methodology", "Learning Assessment Statistics"],
+            ministry: "Ministry of Education"
+        },
+
+        // Ministry of Rural Development
+        "Statistics, Monitoring & Evaluation Division": {
+            sectorTag: "Rural Dev",
+            d6Competencies: ["Scheme M&E Indicators", "Rural Development Survey Design"],
+            ministry: "Ministry of Rural Development"
+        },
+        "DISHA/SECC Analytics": {
+            sectorTag: "Socio-Economic Census",
+            d6Competencies: ["SECC Data Structure", "Deprivation Indicator Computation"],
+            ministry: "Ministry of Rural Development"
+        },
+        "MGNREGA Real-time MIS": {
+            sectorTag: "Employment Guarantee",
+            d6Competencies: ["MIS Wage/Workday Metrics", "Real-time Scheme Dashboards"],
+            ministry: "Ministry of Rural Development"
+        },
+        "PMGSY GIS Directorate": {
+            sectorTag: "Rural Connectivity",
+            d6Competencies: ["Road Connectivity GIS Mapping", "Infrastructure Progress Metrics"],
+            ministry: "Ministry of Rural Development"
+        },
+
+        // Ministry of Labour & Employment
+        "Labour Bureau": {
+            sectorTag: "Labour Statistics",
+            d6Competencies: ["Labour Force Survey Concepts", "Employment Classification Standards"],
+            ministry: "Ministry of Labour & Employment"
+        },
+        "CPI-IW Division": {
+            sectorTag: "Industrial Price Index",
+            d6Competencies: ["CPI-IW Basket & Weight Methodology"],
+            ministry: "Ministry of Labour & Employment"
+        },
+        "CPI-AL/RL": {
+            sectorTag: "Agri-Labour Price Index",
+            d6Competencies: ["Rural Wage Index Construction"],
+            ministry: "Ministry of Labour & Employment"
+        },
+        "Employment-Unemployment/Wage Cell": {
+            sectorTag: "Employment Survey",
+            d6Competencies: ["Wage Rate Survey Design", "Unemployment Rate Estimation"],
+            ministry: "Ministry of Labour & Employment"
+        },
+        "DGE": {
+            sectorTag: "Employment Services",
+            d6Competencies: ["Employment Exchange Data Standards"],
+            ministry: "Ministry of Labour & Employment"
+        },
+        "NCS Analytics": {
+            sectorTag: "Labour Market Info",
+            d6Competencies: ["Labour Market Information Systems (LMIS)"],
+            ministry: "Ministry of Labour & Employment"
+        },
+
+        // Ministry of Health & Family Welfare
+        "Statistics & Data Analytics Division": {
+            sectorTag: "Health Statistics",
+            d6Competencies: ["Vital Statistics Methodology", "Health Indicator Frameworks"],
+            ministry: "Ministry of Health & Family Welfare"
+        },
+        "NFHS & Demographic Cell": {
+            sectorTag: "Demography",
+            d6Competencies: ["Demographic Survey Design (NFHS)", "Fertility/Mortality Indicators"],
+            ministry: "Ministry of Health & Family Welfare"
+        },
+        "CBHI": {
+            sectorTag: "Health Records",
+            d6Competencies: ["Health Records Compilation Standards"],
+            ministry: "Ministry of Health & Family Welfare"
+        },
+        "HMIS": {
+            sectorTag: "Digital Health",
+            d6Competencies: ["HMIS Data Schema", "Facility-level Health Reporting"],
+            ministry: "Ministry of Health & Family Welfare"
+        },
+
+        // Ministry of Agriculture & Farmers Welfare
+        "DES-Agriculture": {
+            sectorTag: "Agri Statistics",
+            d6Competencies: ["Crop Estimation Survey Methodology", "Agri-Economic Indicators"],
+            ministry: "Ministry of Agriculture & Farmers Welfare"
+        },
+        "Crop Estimation/Advance Estimates Wing": {
+            sectorTag: "Crop Statistics",
+            d6Competencies: ["Crop Cutting Experiments", "Advance Estimate Methodology"],
+            ministry: "Ministry of Agriculture & Farmers Welfare"
+        },
+        "Agricultural Census & Land Use Division": {
+            sectorTag: "Land Use Survey",
+            d6Competencies: ["Agricultural Census Concepts", "Land Use Classification"],
+            ministry: "Ministry of Agriculture & Farmers Welfare"
+        },
+        "ISAS Directorate": {
+            sectorTag: "Integrated Agri Stats",
+            d6Competencies: ["ISAS Scheme Data Standards"],
+            ministry: "Ministry of Agriculture & Farmers Welfare"
+        },
+        "MNCFC": {
+            sectorTag: "Remote Sensing/GIS",
+            d6Competencies: ["Satellite-based Crop Forecasting", "GIS for Agriculture"],
+            ministry: "Ministry of Agriculture & Farmers Welfare"
+        },
+
+        // Ministry of Finance
+        "Economic Division": {
+            sectorTag: "Macro-Economics",
+            d6Competencies: ["Macroeconomic Forecasting Models", "Economic Survey Compilation"],
+            ministry: "Ministry of Finance"
+        },
+        "Budget Division — Fiscal Statistics": {
+            sectorTag: "Fiscal Statistics",
+            d6Competencies: ["Fiscal/Revenue Data Classification"],
+            ministry: "Ministry of Finance"
+        },
+        "CBDT Tax Analytics Cell": {
+            sectorTag: "Direct Tax Statistics",
+            d6Competencies: ["Direct Tax Data Analysis"],
+            ministry: "Ministry of Finance"
+        },
+        "CBIC GST Analytics": {
+            sectorTag: "Indirect Tax Statistics",
+            d6Competencies: ["GST/Trade Data Intelligence"],
+            ministry: "Ministry of Finance"
+        },
+        "Financial Services — Banking Stats": {
+            sectorTag: "Financial Inclusion",
+            d6Competencies: ["Banking/Credit Flow Indicators"],
+            ministry: "Ministry of Finance"
+        },
+
+        // Ministry of Statistics & Programme Implementation (MoSPI)
+        "SDRD (Survey Design)": {
+            sectorTag: "Survey Methodology",
+            d6Competencies: ["Advanced Sample Design", "Survey Instrument Development"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "FOD": {
+            sectorTag: "Field Operations",
+            d6Competencies: ["Field Data Collection Management", "CAPI Systems"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "DPD": {
+            sectorTag: "Data Processing",
+            d6Competencies: ["Large-scale Data Processing Pipelines"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "NAD": {
+            sectorTag: "National Accounts",
+            d6Competencies: ["GDP/GVA Compilation", "Base-year Revision Methods"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "ESD": {
+            sectorTag: "Industrial/Economic Stats",
+            d6Competencies: ["ASI/IIP Concepts", "Business Register Maintenance"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "PSD": {
+            sectorTag: "Price Statistics",
+            d6Competencies: ["CPI Construction Methodology"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "SSD": {
+            sectorTag: "Social Statistics",
+            d6Competencies: ["SDG Indicator Compilation", "Social Survey Concepts"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "NSSTA": {
+            sectorTag: "Training & Capacity Building",
+            d6Competencies: ["Training Design", "Andragogy for Statistical Officers"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+        "PI Wing / TPP / IPMD": {
+            sectorTag: "Programme Implementation",
+            d6Competencies: ["Scheme Progress Monitoring Indicators"],
+            ministry: "Ministry of Statistics & Programme Implementation (MoSPI)"
+        },
+
+        // Ministry of Commerce & Industry
+        "DGCI&S": {
+            sectorTag: "Trade Statistics",
+            d6Competencies: ["Foreign Trade Data Compilation"],
+            ministry: "Ministry of Commerce & Industry"
+        },
+        "Foreign Trade Directorate": {
+            sectorTag: "Export-Import Stats",
+            d6Competencies: ["Merchandise Trade Classification (HS Codes)"],
+            ministry: "Ministry of Commerce & Industry"
+        },
+        "Inland Trade/DPIIT": {
+            sectorTag: "Industrial Trade",
+            d6Competencies: ["Internal Trade Data Systems"],
+            ministry: "Ministry of Commerce & Industry"
+        },
+        "WPI/IIP Monitoring Cell": {
+            sectorTag: "Wholesale Price/Industrial Production",
+            d6Competencies: ["WPI Basket Construction"],
+            ministry: "Ministry of Commerce & Industry"
+        },
+
+        // Ministry of Consumer Affairs, Food & Public Distribution
+        "Price Monitoring Cell": {
+            sectorTag: "Consumer Prices",
+            d6Competencies: ["Daily Price Monitoring Methodology"],
+            ministry: "Ministry of Consumer Affairs, Food & Public Distribution"
+        },
+        "Retail/Wholesale Price Tracking": {
+            sectorTag: "Commodity Prices",
+            d6Competencies: ["Essential Commodity Price Indices"],
+            ministry: "Ministry of Consumer Affairs, Food & Public Distribution"
+        },
+        "Market Intelligence Directorate": {
+            sectorTag: "Buffer Stock Analytics",
+            d6Competencies: ["Buffer Stock & Market Intelligence Indicators"],
+            ministry: "Ministry of Consumer Affairs, Food & Public Distribution"
+        },
+        "NFSA/PDS Analytics Unit": {
+            sectorTag: "Food Security",
+            d6Competencies: ["PDS Coverage Statistics", "NFSA Beneficiary Data"],
+            ministry: "Ministry of Consumer Affairs, Food & Public Distribution"
+        }
+    };
+
+    // 5. OFFICIAL ROLE GRADES (R1 to R6) BASED ON FRAMEWORK SECTION 2
+    const ROLE_GRADES = [
+        { grade: "R1", baseTitle: "[Sector] Field Enumerator / Data Collector", pattern: "{sector} Field Enumerator / Data Collector", tier: "Entry", exp: "0–2 Years", desc: "Household/enterprise field visits; CAPI administration; first-level scrutiny" },
+        { grade: "R2", baseTitle: "[Sector] Statistical Supervisor", pattern: "{sector} Statistical Supervisor", tier: "Entry / Junior", exp: "2–4 Years", desc: "Supervising field teams; verifying sample selection; second-level data scrutiny" },
+        { grade: "R3", baseTitle: "Assistant Director ([Sector] Statistics)", pattern: "Assistant Director ({sector} Statistics)", tier: "Junior", exp: "3–7 Years", desc: "Data cleaning, tabulation, estimation scripts, technical notes (ISS JTS)" },
+        { grade: "R4", baseTitle: "Deputy Director ([Sector] Statistics)", pattern: "Deputy Director ({sector} Statistics)", tier: "Senior", exp: "7–10 Years", desc: "Designing/revising sampling frames & index methods; quality audits (ISS STS)" },
+        { grade: "R5", baseTitle: "Director ([Sector] Statistics)", pattern: "Director ({sector} Statistics)", tier: "Senior", exp: "10–15 Years", desc: "Approving methodology; presenting data; coordinating base revisions (Division Head)" },
+        { grade: "R6", baseTitle: "Additional DG / Statistical Adviser ([Sector])", pattern: "Additional DG / Statistical Adviser ({sector})", tier: "Leadership", exp: "15+ Years", desc: "National policy doctrine, cadre leadership, international representation" }
+    ];
+
+    window.DEPARTMENT_FRAMEWORK_MAP = DEPARTMENT_FRAMEWORK_MAP;
+    window.ROLE_GRADES = ROLE_GRADES;
+
+    window.getDepartmentFrameworkConfig = function(deptName) {
+        if (!deptName) return { sectorTag: "Official Statistics", d6Competencies: ["Statistical Methodology", "Data Validation"], ministry: "Central/State Government" };
+        
+        // Exact match
+        if (DEPARTMENT_FRAMEWORK_MAP[deptName]) {
+            return DEPARTMENT_FRAMEWORK_MAP[deptName];
+        }
+
+        // Substring / fuzzy match
+        const lower = deptName.toLowerCase();
+        for (const [key, cfg] of Object.entries(DEPARTMENT_FRAMEWORK_MAP)) {
+            if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
+                return cfg;
+            }
+        }
+
+        // Keywords detection
+        if (lower.includes("sdrd") || lower.includes("survey design")) {
+            return DEPARTMENT_FRAMEWORK_MAP["SDRD (Survey Design)"];
+        }
+        if (lower.includes("fod") || lower.includes("field operation")) {
+            return DEPARTMENT_FRAMEWORK_MAP["FOD"];
+        }
+        if (lower.includes("nad") || lower.includes("national account") || lower.includes("gdp")) {
+            return DEPARTMENT_FRAMEWORK_MAP["NAD"];
+        }
+        if (lower.includes("esd") || lower.includes("economic statistics") || lower.includes("asi") || lower.includes("iip")) {
+            return DEPARTMENT_FRAMEWORK_MAP["ESD"];
+        }
+        if (lower.includes("psd") || lower.includes("price") || lower.includes("cpi")) {
+            return DEPARTMENT_FRAMEWORK_MAP["PSD"];
+        }
+        if (lower.includes("ssd") || lower.includes("social") || lower.includes("sdg")) {
+            return DEPARTMENT_FRAMEWORK_MAP["SSD"];
+        }
+        if (lower.includes("water") || lower.includes("irrigation") || lower.includes("jal")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Minor Irrigation Census & Water Bodies Directorate"];
+        }
+        if (lower.includes("education") || lower.includes("school") || lower.includes("aishe") || lower.includes("udise")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Statistics & Educational Survey Division"];
+        }
+        if (lower.includes("labour") || lower.includes("employment")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Labour Bureau"];
+        }
+        if (lower.includes("health") || lower.includes("family welfare") || lower.includes("nhm") || lower.includes("nfhs")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Statistics & Data Analytics Division"];
+        }
+        if (lower.includes("agri") || lower.includes("crop") || lower.includes("farmer")) {
+            return DEPARTMENT_FRAMEWORK_MAP["DES-Agriculture"];
+        }
+        if (lower.includes("finance") || lower.includes("budget") || lower.includes("economic division") || lower.includes("tax")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Economic Division"];
+        }
+        if (lower.includes("rural") || lower.includes("mgnrega") || lower.includes("disha")) {
+            return DEPARTMENT_FRAMEWORK_MAP["Statistics, Monitoring & Evaluation Division"];
+        }
+        if (lower.includes("commerce") || lower.includes("trade")) {
+            return DEPARTMENT_FRAMEWORK_MAP["DGCI&S"];
+        }
+
+        return {
+            sectorTag: "Official Statistics",
+            d6Competencies: ["Public Data Standards", "Official Statistical Validation"],
+            ministry: "National Statistical System"
+        };
+    };
+
+    window.getDesignationsForDepartment = function(deptName) {
+        const config = window.getDepartmentFrameworkConfig(deptName);
+        const sector = config.sectorTag || "Official Statistics";
+        return ROLE_GRADES.map(rg => {
+            const title = rg.pattern.replace("{sector}", sector);
+            return {
+                grade: rg.grade,
+                title: title,
+                fullTitle: `${rg.grade} — ${title}`,
+                tier: rg.tier,
+                exp: rg.exp,
+                desc: rg.desc,
+                sectorTag: sector,
+                d6Competencies: config.d6Competencies || []
+            };
+        });
+    };
+
     window.getAllDesignationsList = function() {
-        return [
-            "Senior Statistical Officer (SSO) — SSS Cadre",
-            "Junior Statistical Officer (JSO) — SSS Cadre",
-            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
-            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
-            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
-            "Director (Survey Design / Official Statistics) — ISS Cadre",
-            "Deputy Director General (DDG - Statistical Cadre)",
-            "Additional Director General (ADG - Official Statistics)",
-            "Director General (NSO / Central Statistical System)",
-            "District Statistical Officer (DSO) — State DES",
-            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
-            "Statistical Investigator / Survey Field Officer (FOD)"
-        ];
+        const defaultDept = "National Statistical Office (NSO - NAD)";
+        const generated = window.getDesignationsForDepartment(defaultDept);
+        return generated.map(g => g.fullTitle);
     };
 })(window);
+

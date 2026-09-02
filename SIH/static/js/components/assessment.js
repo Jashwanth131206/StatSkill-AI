@@ -298,6 +298,23 @@ function getAssessmentStepHTML(step, user, state) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Framework Role Grade & D6 Competencies Tag -->
+                <div class="mt-2 p-2.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200 rounded-xl text-xs space-y-1.5 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-blue-600"></i>
+                            Role Grade: <span class="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-extrabold uppercase">${user.roleGrade || user.role_grade || 'R3'}</span>
+                        </span>
+                        <span class="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            Sector: <b class="text-blue-700">${user.sectorTag || user.sector_tag || 'Official Statistics'}</b>
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-slate-600">
+                        <span class="font-semibold text-slate-700">D6 Sectoral Competencies:</span>
+                        <span class="text-blue-950 font-bold ml-1">${user.d6Competencies || user.d6_competencies || 'Statistical Methodology & Data Validation'}</span>
+                    </div>
+                </div>
             </div>
 
             <!-- 2. Posting & Current Statistical Assignment -->
@@ -835,15 +852,41 @@ window.nextAssessmentStep = function() {
             return; // STRICTLY STOP: Do not move to step 2!
         }
 
+        const activeDept = deptEl && deptEl.value.trim() ? deptEl.value.trim() : (activeUser.department || 'National Statistical Office (NSO - SDRD)');
+        const activeDesig = desigEl && desigEl.value.trim() ? desigEl.value.trim() : desigClean;
+        let roleGrade = activeUser.role_grade || activeUser.roleGrade || 'R3';
+        let sectorTag = activeUser.sector_tag || activeUser.sectorTag || 'Official Statistics';
+        let d6Competencies = activeUser.d6_competencies || activeUser.d6Competencies || '';
+
+        if (typeof window.getDepartmentFrameworkConfig === 'function') {
+            const cfg = window.getDepartmentFrameworkConfig(activeDept);
+            if (cfg) {
+                sectorTag = cfg.sectorTag || sectorTag;
+                if (!d6Competencies || d6Competencies.length < 3) {
+                    d6Competencies = (cfg.d6Competencies || []).join(', ');
+                }
+            }
+        }
+        const gradeMatch = activeDesig.match(/\b(R[1-6])\b/);
+        if (gradeMatch) {
+            roleGrade = gradeMatch[1];
+        }
+
         // All required fields provided -> Build clean profile object
         const updatedProfile = {
             email: activeUser.email || 'ananya.sharma@nic.in',
             mobile: activeUser.mobile || '',
             name: nameEl && nameEl.value.trim() ? nameEl.value.trim() : (activeUser.name || 'Statistical Officer'),
             ministry: minEl && minEl.value.trim() ? minEl.value.trim() : (activeUser.ministry || 'Ministry of Statistics & Programme Implementation'),
-            department: deptEl && deptEl.value.trim() ? deptEl.value.trim() : (activeUser.department || 'National Statistical Office (NSO - SDRD)'),
-            designation: desigEl && desigEl.value.trim() ? desigEl.value.trim() : desigClean,
-            role: desigEl && desigEl.value.trim() ? desigEl.value.trim() : desigClean,
+            department: activeDept,
+            designation: activeDesig,
+            role: activeDesig,
+            roleGrade: roleGrade,
+            role_grade: roleGrade,
+            sectorTag: sectorTag,
+            sector_tag: sectorTag,
+            d6Competencies: d6Competencies,
+            d6_competencies: d6Competencies,
             employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
             org_type: activeUser.org_type || 'Central Government',
             

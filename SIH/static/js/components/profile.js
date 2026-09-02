@@ -488,14 +488,40 @@ window.saveModalProfile = function() {
         return;
     }
 
+    const activeDept = deptVal || activeUser.department || 'National Statistical Office (NSO - SDRD)';
+    const activeDesig = desigVal || desigClean;
+    let roleGrade = activeUser.role_grade || activeUser.roleGrade || 'R3';
+    let sectorTag = activeUser.sector_tag || activeUser.sectorTag || 'Official Statistics';
+    let d6Competencies = activeUser.d6_competencies || activeUser.d6Competencies || '';
+
+    if (typeof window.getDepartmentFrameworkConfig === 'function') {
+        const cfg = window.getDepartmentFrameworkConfig(activeDept);
+        if (cfg) {
+            sectorTag = cfg.sectorTag || sectorTag;
+            if (!d6Competencies || d6Competencies.length < 3) {
+                d6Competencies = (cfg.d6Competencies || []).join(', ');
+            }
+        }
+    }
+    const gradeMatch = activeDesig.match(/\b(R[1-6])\b/);
+    if (gradeMatch) {
+        roleGrade = gradeMatch[1];
+    }
+
     const updatedProfile = {
         email: activeUser.email || 'ananya.sharma@nic.in',
         mobile: activeUser.mobile || '',
         name: nameVal || activeUser.name || 'Statistical Officer',
         ministry: minVal || activeUser.ministry || 'Ministry of Statistics & Programme Implementation',
-        department: deptVal || activeUser.department || 'National Statistical Office (NSO - SDRD)',
-        designation: desigVal || desigClean,
-        role: desigVal || desigClean,
+        department: activeDept,
+        designation: activeDesig,
+        role: activeDesig,
+        roleGrade: roleGrade,
+        role_grade: roleGrade,
+        sectorTag: sectorTag,
+        sector_tag: sectorTag,
+        d6Competencies: d6Competencies,
+        d6_competencies: d6Competencies,
         employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
         org_type: activeUser.org_type || 'Central Government',
         location: locVal,
