@@ -359,6 +359,17 @@ window.saveModalProfile = function() {
     const deptVal = document.getElementById('modal_prof_dept')?.value?.trim();
     const desigVal = document.getElementById('modal_prof_desig')?.value?.trim();
 
+    const locVal = document.getElementById('modal_prof_location')?.value?.trim();
+    const assignVal = document.getElementById('modal_prof_assignment')?.value?.trim();
+    const degreeVal = document.getElementById('modal_prof_degree')?.value?.trim();
+    const expVal = document.getElementById('modal_prof_exp')?.value?.trim();
+    const domainsVal = document.getElementById('modal_prof_domains')?.value?.trim();
+
+    if (!locVal || !assignVal || !degreeVal || !expVal || !domainsVal) {
+        alert("Please complete all required fields marked with * (Workplace Location, Current Assignment, Degree, Years of Experience, and Statistical Domains).");
+        return;
+    }
+
     const updatedProfile = {
         email: activeUser.email || 'ananya.sharma@nic.in',
         mobile: activeUser.mobile || '',
@@ -369,21 +380,25 @@ window.saveModalProfile = function() {
         role: desigVal || desigClean,
         employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
         org_type: activeUser.org_type || 'Central Government',
-        location: document.getElementById('modal_prof_location')?.value?.trim() || activeUser.location,
-        currentAssignment: document.getElementById('modal_prof_assignment')?.value?.trim() || activeUser.currentAssignment,
-        degree: document.getElementById('modal_prof_degree')?.value || activeUser.degree,
-        specialization: document.getElementById('modal_prof_spec')?.value?.trim() || activeUser.specialization,
-        experienceYears: parseFloat(document.getElementById('modal_prof_exp')?.value || 4.0),
-        previousRoles: document.getElementById('modal_prof_prevRoles')?.value?.trim() || activeUser.previousRoles,
-        statisticalDomains: document.getElementById('modal_prof_domains')?.value?.trim() || activeUser.statisticalDomains,
-        technicalQualifications: document.getElementById('modal_prof_tools')?.value?.trim() || activeUser.technicalQualifications,
-        trainingProgrammes: document.getElementById('modal_prof_training')?.value?.trim() || activeUser.trainingProgrammes,
+        location: locVal,
+        currentAssignment: assignVal,
+        degree: degreeVal,
+        specialization: document.getElementById('modal_prof_spec')?.value?.trim() || '',
+        experienceYears: parseFloat(expVal) || 0,
+        previousRoles: document.getElementById('modal_prof_prevRoles')?.value?.trim() || '',
+        statisticalDomains: domainsVal,
+        projectsHandled: document.getElementById('modal_prof_projects')?.value?.trim() || '',
+        technicalQualifications: document.getElementById('modal_prof_tools')?.value?.trim() || '',
+        trainingProgrammes: document.getElementById('modal_prof_training')?.value?.trim() || '',
         profileCompleted: true
     };
 
     if (window.store) {
         window.store.state.user = Object.assign({}, window.store.state.user, updatedProfile);
         window.store.state.currentUser = window.store.state.user;
+        if (typeof window.store.syncUserFRACCompetencies === 'function') {
+            window.store.syncUserFRACCompetencies();
+        }
     }
 
     fetch('/api/profile/update', {

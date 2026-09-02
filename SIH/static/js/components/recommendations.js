@@ -76,9 +76,9 @@ function renderRecommendations(state) {
         <!-- Recommended Courses Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="coursesGrid">
             ${courses.map(course => {
-                const isAdded = state.learningPath.some(item => item.title === course.title);
+        const isAdded = state.learningPath.some(item => item.title === course.title);
 
-                return `
+        return `
                 <div class="stat-card overflow-hidden flex flex-col justify-between course-card" data-source="${course.source}">
                     <div>
                         <!-- Thumbnail Header with Match Badge -->
@@ -147,7 +147,7 @@ function renderRecommendations(state) {
                     </div>
                 </div>
                 `;
-            }).join('')}
+    }).join('')}
         </div>
     </div>
 

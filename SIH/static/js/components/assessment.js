@@ -110,6 +110,9 @@ function getAssessmentStepHTML(step, user, state) {
 
         return `
         <div class="space-y-6">
+            <!-- Dynamic Validation Alert Banner -->
+            <div id="profileStepErrorBanner" class="hidden"></div>
+
             <div class="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3">
                 <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow">
                     <i class="fa-solid fa-user-shield"></i>
@@ -117,7 +120,7 @@ function getAssessmentStepHTML(step, user, state) {
                 <div class="text-xs space-y-1">
                     <span class="font-extrabold text-blue-900 text-sm">Block 1 — Official Digital Competency Profile</span>
                     <p class="text-slate-600 leading-relaxed">
-                        Please fill in your workplace posting, educational background, prior training, and domain experience below. This information will personalize your assessment questions and learning path.
+                        Please provide your official posting, educational background, and domain experience below. All fields marked with <span class="text-red-500 font-bold">*</span> are mandatory for competency calibration and database profile creation.
                     </p>
                 </div>
             </div>
@@ -148,11 +151,12 @@ function getAssessmentStepHTML(step, user, state) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Official Name</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Official Name ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_name" value="${user.name || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
+                            <input type="text" id="prof_name" value="${user.name || ''}" oninput="clearAssessmentFieldError('prof_name')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
+                        <div id="err_prof_name" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Official name is required.</div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-600 block mb-1">Cadre Code / Government Employee ID</label>
@@ -162,25 +166,28 @@ function getAssessmentStepHTML(step, user, state) {
                         </div>
                     </div>
                     <div>
-                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Ministry / Administration</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Ministry / Administration ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_ministry" value="${user.ministry || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Ministry of Statistics & Programme Implementation">
+                            <input type="text" id="prof_ministry" value="${user.ministry || ''}" oninput="clearAssessmentFieldError('prof_ministry')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Ministry of Statistics & Programme Implementation">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
+                        <div id="err_prof_ministry" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Ministry is required.</div>
                     </div>
                     <div>
-                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Department / Division</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Department / Division ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_dept" value="${user.department || ''}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. National Statistical Office (NSO - SDRD)">
+                            <input type="text" id="prof_dept" value="${user.department || ''}" oninput="clearAssessmentFieldError('prof_dept')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. National Statistical Office (NSO - SDRD)">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
+                        <div id="err_prof_dept" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Department is required.</div>
                     </div>
                     <div>
-                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Designation / Role</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Designation / Role ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_desig" value="${desig}" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Senior Statistical Officer (SSO)">
+                            <input type="text" id="prof_desig" value="${desig}" oninput="clearAssessmentFieldError('prof_desig')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Senior Statistical Officer (SSO)">
                             <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
+                        <div id="err_prof_desig" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Designation is required.</div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-600 block mb-1">Authenticated Contact</label>
@@ -199,12 +206,14 @@ function getAssessmentStepHTML(step, user, state) {
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Location of Workplace / Posting Office <span class="text-red-500">*</span></label>
-                        <input type="text" id="prof_location" value="${location}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Sankhyiki Bhawan, New Delhi or Regional Office, Pune">
+                        <label class="font-bold text-slate-700 block mb-1">Location of Workplace / Posting Office <span class="text-red-500 font-bold">*</span></label>
+                        <input type="text" id="prof_location" value="${location}" oninput="clearAssessmentFieldError('prof_location')" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm transition-all" placeholder="e.g. Sankhyiki Bhawan, New Delhi or Regional Office, Pune">
+                        <div id="err_prof_location" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Please enter your workplace / posting office location.</div>
                     </div>
                     <div class="sm:col-span-1">
-                        <label class="font-bold text-slate-700 block mb-1">Current Survey & Statistical Assignment <span class="text-red-500">*</span></label>
-                        <input type="text" id="prof_assignment" value="${assignment}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Periodic Labour Force Survey (PLFS), National Accounts, Price Indices">
+                        <label class="font-bold text-slate-700 block mb-1">Current Survey & Statistical Assignment <span class="text-red-500 font-bold">*</span></label>
+                        <input type="text" id="prof_assignment" value="${assignment}" oninput="clearAssessmentFieldError('prof_assignment')" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm transition-all" placeholder="e.g. Periodic Labour Force Survey (PLFS), National Accounts, Price Indices">
+                        <div id="err_prof_assignment" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Please specify your current statistical assignment or survey.</div>
                     </div>
                 </div>
             </div>
@@ -216,8 +225,8 @@ function getAssessmentStepHTML(step, user, state) {
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Higher Education / Highest Degree <span class="text-red-500">*</span></label>
-                        <select id="prof_degree" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm">
+                        <label class="font-bold text-slate-700 block mb-1">Higher Education / Highest Degree <span class="text-red-500 font-bold">*</span></label>
+                        <select id="prof_degree" onchange="clearAssessmentFieldError('prof_degree')" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm transition-all">
                             <option value="" disabled ${!degree ? 'selected' : ''}>-- Select Highest Academic Degree --</option>
                             <option value="M.Sc. Statistics" ${degree === 'M.Sc. Statistics' ? 'selected' : ''}>M.Sc. Statistics</option>
                             <option value="M.A. Economics / Econometrics" ${degree.includes('Economics') || degree.includes('Econometrics') ? 'selected' : ''}>M.A. Economics / Econometrics</option>
@@ -227,6 +236,7 @@ function getAssessmentStepHTML(step, user, state) {
                             <option value="MCA / Master in Data Analytics" ${degree.includes('MCA') || degree.includes('Analytics') ? 'selected' : ''}>MCA / Master in Data Analytics</option>
                             <option value="Other Post Graduate Degree" ${degree.includes('Other') ? 'selected' : ''}>Other Post Graduate / Master Degree</option>
                         </select>
+                        <div id="err_prof_degree" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Please select your highest educational qualification.</div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Specialization / Subject Area</label>
@@ -253,22 +263,24 @@ function getAssessmentStepHTML(step, user, state) {
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Years of Experience in Official Statistics <span class="text-red-500">*</span></label>
-                        <select id="prof_exp" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm">
+                        <label class="font-bold text-slate-700 block mb-1">Years of Experience in Official Statistics <span class="text-red-500 font-bold">*</span></label>
+                        <select id="prof_exp" onchange="clearAssessmentFieldError('prof_exp')" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm transition-all">
                             <option value="" disabled ${exp === '' ? 'selected' : ''}>-- Select Total Years of Experience --</option>
                             <option value="1.5" ${exp !== '' && exp < 2 ? 'selected' : ''}>0 - 2 Years (Junior / Induction Level)</option>
                             <option value="4.0" ${exp !== '' && exp >= 2 && exp < 6 ? 'selected' : ''}>3 - 5 Years (Mid-Level Practitioner)</option>
                             <option value="8.0" ${exp !== '' && exp >= 6 && exp < 12 ? 'selected' : ''}>6 - 10 Years (Senior Cadre Specialist)</option>
                             <option value="15.0" ${exp !== '' && exp >= 12 ? 'selected' : ''}>10+ Years (Leadership / Directorate Level)</option>
                         </select>
+                        <div id="err_prof_exp" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Please select your total years of experience.</div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">Previous Cadres / Roles Worked In</label>
                         <input type="text" id="prof_prevRoles" value="${prevRoles}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Statistical Investigator, Junior Statistical Officer, Research Fellow">
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="font-bold text-slate-700 block mb-1">Statistical Domains Worked In</label>
-                        <input type="text" id="prof_domains" value="${domains}" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm" placeholder="e.g. Survey Design, Sampling, National Accounts, Price Indices, Economic Census">
+                        <label class="font-bold text-slate-700 block mb-1">Statistical Domains Worked In <span class="text-red-500 font-bold">*</span></label>
+                        <input type="text" id="prof_domains" value="${domains}" oninput="clearAssessmentFieldError('prof_domains')" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:ring-2 focus:ring-blue-600 shadow-sm transition-all" placeholder="e.g. Survey Design, Sampling, National Accounts, Price Indices, Economic Census">
+                        <div id="err_prof_domains" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Please specify the statistical domains you have worked in.</div>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700 block mb-1">Key Surveys / Projects Handled</label>
@@ -459,9 +471,27 @@ window.updateSelfRating = function(key, val) {
     if (label) label.textContent = `Level ${val} / 5`;
 };
 
+window.clearAssessmentFieldError = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.classList.remove('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+    }
+    const errSpan = document.getElementById(`err_${id}`);
+    if (errSpan) {
+        errSpan.classList.add('hidden');
+    }
+    const banner = document.getElementById('profileStepErrorBanner');
+    if (banner) {
+        // If all errors are cleared, hide banner
+        const visibleErrors = document.querySelectorAll('#assessmentStepContainer [id^="err_"]:not(.hidden)');
+        if (visibleErrors.length === 0) {
+            banner.classList.add('hidden');
+        }
+    }
+};
+
 window.nextAssessmentStep = function() {
     if (currentAssessmentStep === 1) {
-        // Save Block 1 Profile Details to Backend & Store
         const activeUser = (window.store && window.store.state && window.store.state.user) || {};
         const desigClean = (typeof activeUser.designation === 'object' && activeUser.designation ? (activeUser.designation.title || activeUser.designation.name) : activeUser.designation) || 'Senior Statistical Officer (SSO)';
         
@@ -481,8 +511,129 @@ window.nextAssessmentStep = function() {
         const projEl = document.getElementById('prof_projects');
         const trainEl = document.getElementById('prof_training');
 
+        const errors = [];
+        const missingEls = [];
+
+        // 1. Validate Location of Workplace
+        if (!locEl || !locEl.value.trim()) {
+            errors.push("Location of Workplace / Posting Office is required");
+            if (locEl) {
+                locEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                missingEls.push(locEl);
+                const s = document.getElementById('err_prof_location');
+                if (s) s.classList.remove('hidden');
+            }
+        }
+
+        // 2. Validate Current Survey & Statistical Assignment
+        if (!assignEl || !assignEl.value.trim()) {
+            errors.push("Current Survey & Statistical Assignment is required");
+            if (assignEl) {
+                assignEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                missingEls.push(assignEl);
+                const s = document.getElementById('err_prof_assignment');
+                if (s) s.classList.remove('hidden');
+            }
+        }
+
+        // 3. Validate Highest Education / Degree
+        if (!degEl || !degEl.value.trim()) {
+            errors.push("Higher Education / Highest Degree is required");
+            if (degEl) {
+                degEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                missingEls.push(degEl);
+                const s = document.getElementById('err_prof_degree');
+                if (s) s.classList.remove('hidden');
+            }
+        }
+
+        // 4. Validate Years of Experience
+        if (!expEl || !expEl.value.trim()) {
+            errors.push("Years of Experience in Official Statistics is required");
+            if (expEl) {
+                expEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                missingEls.push(expEl);
+                const s = document.getElementById('err_prof_exp');
+                if (s) s.classList.remove('hidden');
+            }
+        }
+
+        // 5. Validate Statistical Domains
+        if (!domsEl || !domsEl.value.trim()) {
+            errors.push("Statistical Domains Worked In is required");
+            if (domsEl) {
+                domsEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                missingEls.push(domsEl);
+                const s = document.getElementById('err_prof_domains');
+                if (s) s.classList.remove('hidden');
+            }
+        }
+
+        // 6. Validate Cadre if Unlocked
+        if (window.isCadreUnlocked) {
+            if (!nameEl || !nameEl.value.trim()) {
+                errors.push("Official Name is required");
+                if (nameEl) {
+                    nameEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                    missingEls.push(nameEl);
+                    const s = document.getElementById('err_prof_name');
+                    if (s) s.classList.remove('hidden');
+                }
+            }
+            if (!minEl || !minEl.value.trim()) {
+                errors.push("Ministry / Administration is required");
+                if (minEl) {
+                    minEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                    missingEls.push(minEl);
+                    const s = document.getElementById('err_prof_ministry');
+                    if (s) s.classList.remove('hidden');
+                }
+            }
+            if (!deptEl || !deptEl.value.trim()) {
+                errors.push("Department / Division is required");
+                if (deptEl) {
+                    deptEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                    missingEls.push(deptEl);
+                    const s = document.getElementById('err_prof_dept');
+                    if (s) s.classList.remove('hidden');
+                }
+            }
+            if (!desigEl || !desigEl.value.trim()) {
+                errors.push("Designation / Role is required");
+                if (desigEl) {
+                    desigEl.classList.add('border-red-500', 'ring-2', 'ring-red-400', 'bg-red-50/50');
+                    missingEls.push(desigEl);
+                    const s = document.getElementById('err_prof_desig');
+                    if (s) s.classList.remove('hidden');
+                }
+            }
+        }
+
+        // If validation fails, display error banner and halt execution!
+        if (errors.length > 0) {
+            const errBanner = document.getElementById('profileStepErrorBanner');
+            if (errBanner) {
+                errBanner.innerHTML = `
+                    <div class="p-4 bg-red-50 border-2 border-red-400 rounded-2xl text-red-900 text-xs flex items-start gap-3 shadow-md">
+                        <i class="fa-solid fa-circle-exclamation text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
+                        <div class="space-y-1.5 flex-1">
+                            <strong class="font-black text-sm text-red-900 block">Required Profile Information Incomplete</strong>
+                            <p class="text-red-800">Please provide all mandatory official details marked with <span class="text-red-600 font-bold">*</span> before proceeding with the assessment:</p>
+                            <ul class="list-disc list-inside space-y-0.5 font-bold text-red-700 pt-0.5">
+                                ${errors.map(err => `<li>${err}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                errBanner.classList.remove('hidden');
+                errBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (missingEls[0]) missingEls[0].focus();
+            return; // STRICTLY STOP: Do not move to step 2!
+        }
+
+        // All required fields provided -> Build clean profile object
         const updatedProfile = {
-            // Retain or update official cadre hierarchy if unlocked
             email: activeUser.email || 'ananya.sharma@nic.in',
             mobile: activeUser.mobile || '',
             name: nameEl && nameEl.value.trim() ? nameEl.value.trim() : (activeUser.name || 'Statistical Officer'),
@@ -493,32 +644,36 @@ window.nextAssessmentStep = function() {
             employeeId: activeUser.employeeId || activeUser.employee_id || 'ISS/2026/84920',
             org_type: activeUser.org_type || 'Central Government',
             
-            // Supplementary background fields from assessment Step 1
-            location: locEl ? locEl.value.trim() : (activeUser.location || 'Sankhyiki Bhawan, New Delhi'),
-            currentAssignment: assignEl ? assignEl.value.trim() : (activeUser.currentAssignment || 'Periodic Labour Force Survey (PLFS) & Price Statistics'),
-            degree: degEl ? degEl.value : (activeUser.degree || 'M.Sc. Statistics'),
-            specialization: specEl ? specEl.value.trim() : (activeUser.specialization || 'Survey Methodology & Mathematical Statistics'),
-            technicalQualifications: toolsEl ? toolsEl.value.trim() : (activeUser.technicalQualifications || 'Python, R, SPSS, SQL, PowerBI, Excel'),
-            experienceYears: expEl ? parseFloat(expEl.value) : (activeUser.experienceYears || 4.0),
-            previousRoles: prevRolesEl ? prevRolesEl.value.trim() : (activeUser.previousRoles || 'Junior Statistical Officer, Statistical Investigator'),
-            statisticalDomains: domsEl ? domsEl.value.trim() : (activeUser.statisticalDomains || 'Survey Design, Sampling, National Accounts, Price Statistics'),
-            projectsHandled: projEl ? projEl.value.trim() : (activeUser.projectsHandled || 'Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)'),
-            trainingProgrammes: trainEl ? trainEl.value.trim() : (activeUser.trainingProgrammes || 'NSSTA Greater Noida, iGOT Karmayogi'),
+            location: locEl ? locEl.value.trim() : '',
+            currentAssignment: assignEl ? assignEl.value.trim() : '',
+            degree: degEl ? degEl.value : '',
+            specialization: specEl ? specEl.value.trim() : '',
+            technicalQualifications: toolsEl ? toolsEl.value.trim() : '',
+            experienceYears: expEl ? parseFloat(expEl.value) : 0,
+            previousRoles: prevRolesEl ? prevRolesEl.value.trim() : '',
+            statisticalDomains: domsEl ? domsEl.value.trim() : '',
+            projectsHandled: projEl ? projEl.value.trim() : '',
+            trainingProgrammes: trainEl ? trainEl.value.trim() : '',
             profileCompleted: true
         };
 
-        // Sync with store
+        // Sync with Store & Recalibrate FRAC targets
         if (window.store) {
             window.store.state.user = Object.assign({}, window.store.state.user, updatedProfile);
             window.store.state.currentUser = window.store.state.user;
+            if (typeof window.store.syncUserFRACCompetencies === 'function') {
+                window.store.syncUserFRACCompetencies();
+            }
         }
 
-        // Post to backend
+        // Persist to SQLite Database via POST /api/profile/update
         fetch('/api/profile/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedProfile)
-        }).catch(err => console.log('Profile sync notice:', err));
+        }).then(res => res.json())
+          .then(data => console.log('[DB Sync] Profile saved to database:', data))
+          .catch(err => console.log('[DB Sync Warning]:', err));
     }
 
     if (currentAssessmentStep < 6) {
