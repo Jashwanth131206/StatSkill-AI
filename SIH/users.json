@@ -161,7 +161,7 @@
     "registered_at": "2026-09-01 19:17:53"
   },
   "jamba@nic.gov.in": {
-    "id": "usr_87b11c83fd55",
+    "id": "16",
     "email": "jamba@nic.gov.in",
     "mobile": "9063665665",
     "name": "jabba gaba",
@@ -175,7 +175,28 @@
     "salt": "4a8881ad294864512e8dd0518f1ffdc5",
     "overallScore": 68,
     "learningHours": 42.5,
-    "registered_at": "2026-09-01 19:21:37"
+    "registered_at": "2026-09-01 19:21:37",
+    "employee_id": "SSS/2026/42308",
+    "experienceYears": 4.0,
+    "experience_years": 4.0,
+    "degree": "M.Sc. Statistics",
+    "specialization": "Mathematical Statistics & Survey Methodology",
+    "statisticalDomains": "Survey Design, Sampling, National Accounts, Price Statistics",
+    "statistical_domains": "Survey Design, Sampling, National Accounts, Price Statistics",
+    "previousRoles": "Junior Statistical Officer, Statistical Investigator",
+    "previous_roles": "Junior Statistical Officer, Statistical Investigator",
+    "projectsHandled": "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+    "projects_handled": "Periodic Labour Force Survey (PLFS), Consumer Expenditure Survey (CES)",
+    "technicalQualifications": "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+    "technical_qualifications": "Python, R, SPSS, Stata, SQL, PowerBI, Advanced Excel",
+    "trainingProgrammes": "NSSTA Greater Noida, iGOT Karmayogi",
+    "training_programmes": "NSSTA Greater Noida, iGOT Karmayogi",
+    "currentAssignment": "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+    "current_assignment": "Survey Design & Research Division (SDRD), PLFS & Price Indices",
+    "location": "Sankhyiki Bhawan, New Delhi",
+    "profileCompleted": true,
+    "profile_completed": 1,
+    "assessmentsCompleted": 12
   },
   "rajesh.kumar@nic.in": {
     "id": "usr_e798cec290bd",

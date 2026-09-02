@@ -330,6 +330,35 @@ class AppStore {
         this.notify();
     }
 
+    // Dynamically evaluate competency benchmarks against Government FRAC Matrix for Officer's Role Tier
+    syncUserFRACCompetencies() {
+        const user = this.state.user || {};
+        const officerTier = (typeof window.getOfficerRoleTier === 'function') ? window.getOfficerRoleTier(user) : 'Junior';
+        this.state.officerFracTier = officerTier;
+
+        const userComps = user.competencies || {};
+
+        if (this.state.competencyFramework) {
+            this.state.competencyFramework.forEach(domain => {
+                domain.competencies.forEach(comp => {
+                    const fracReq = (typeof window.getFracRequirement === 'function') ? window.getFracRequirement(comp.name, officerTier) : (comp[`frac${officerTier}`] || 3);
+                    comp.requiredLevel = fracReq;
+
+                    let currLvl = 2;
+                    if (userComps[comp.name] !== undefined) {
+                        currLvl = typeof userComps[comp.name] === 'object' ? userComps[comp.name].current : userComps[comp.name];
+                    } else if (comp.currentLevel !== undefined) {
+                        currLvl = comp.currentLevel;
+                    }
+
+                    comp.currentLevel = currLvl;
+                    comp.gap = Math.max(0, comp.requiredLevel - comp.currentLevel);
+                    comp.priority = comp.gap >= 2 ? "Critical" : (comp.gap === 1 ? "High" : "None");
+                });
+            });
+        }
+    }
+
     // Switch between any of the 50+ Official Personas
     switchUser(userId) {
         const found = this.state.allUsers.find(u => u.id === userId);
@@ -337,23 +366,13 @@ class AppStore {
             this.state.user = JSON.parse(JSON.stringify(found));
             this.state.overallScore = found.overallScore || 68;
 
-            // Recalculate competency framework gaps for this official
-            if (found.competencies) {
-                this.state.competencyFramework.forEach(domain => {
-                    domain.competencies.forEach(comp => {
-                        const userComp = found.competencies[comp.name];
-                        if (userComp) {
-                            comp.currentLevel = userComp.current;
-                            comp.requiredLevel = userComp.required;
-                            comp.gap = Math.max(0, userComp.required - userComp.current);
-                            comp.priority = comp.gap >= 2 ? "Critical" : (comp.gap === 1 ? "High" : "None");
-                        }
-                    });
-                });
-            }
+            // Recalculate competency framework gaps against FRAC reference matrix
+            this.syncUserFRACCompetencies();
 
             // Recalculate AI course recommendations dynamically
-            this.state.courses = window.calculateDynamicRecommendations(this.state.user, MOCK_DATA.allCoursesRaw);
+            if (typeof window.calculateDynamicRecommendations === 'function') {
+                this.state.courses = window.calculateDynamicRecommendations(this.state.user, MOCK_DATA.allCoursesRaw);
+            }
 
             // Re-seed tailored learning path
             this.state.learningPath = [

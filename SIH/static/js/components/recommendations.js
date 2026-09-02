@@ -7,27 +7,33 @@ function renderRecommendations(state) {
     const courses = state.courses;
     const lang = state.currentLanguage;
 
+    const user = state.user || {};
+    const officerTier = (typeof window.getOfficerRoleTier === 'function') ? window.getOfficerRoleTier(user) : (state.officerFracTier || 'Junior');
+    const tierInfo = MOCK_DATA.fracRoleTiers ? MOCK_DATA.fracRoleTiers[officerTier] : { title: "Junior Cadre", experienceRange: "3–7 yrs" };
+
     return `
     <div class="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
         <!-- Header -->
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-orange-500">
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full uppercase">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> AI Learning Advisor
                     </span>
-                    <span class="text-xs text-slate-500">Transparent & Explainable ML Ranking</span>
+                    <span class="text-xs font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                        <i class="fa-solid fa-scale-balanced"></i> FRAC Benchmarked: <strong>${tierInfo.title}</strong>
+                    </span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black text-navy-900 mt-2" style="color: #0B2545;">
                     Personalized Course & Training Recommendations
                 </h1>
                 <p class="text-xs sm:text-sm text-slate-600 max-w-3xl mt-1">
-                    Based on your competency profile as a <strong>Statistical Officer (Data Analytics)</strong>, identified skill gaps, and MoSPI capacity building priorities.
+                    Calibrated against the <strong>Government FRAC 5-Level Competency Model</strong> for ${user.designation || 'Indian Statistical Officers'} to systematically bridge measured skill gaps.
                 </p>
             </div>
 
             <button onclick="showFormulaModal()" class="btn btn-secondary text-xs py-2.5 px-4 whitespace-nowrap">
-                <i class="fa-solid fa-calculator text-orange-500"></i> View Recommendation Formula
+                <i class="fa-solid fa-calculator text-orange-500"></i> View FRAC Scoring Formula
             </button>
         </div>
 
@@ -36,19 +42,19 @@ function renderRecommendations(state) {
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
                 <div class="space-y-1">
                     <div class="font-bold text-navy-900 flex items-center gap-2" style="color: #0B2545;">
-                        <i class="fa-solid fa-brain-circuit text-orange-500"></i> Transparent AI Scoring Logic
+                        <i class="fa-solid fa-brain-circuit text-orange-500"></i> Transparent FRAC-Aligned Scoring Algorithm
                     </div>
                     <p class="text-slate-600 text-[11px]">
-                        Every recommendation is calculated using an explainable multi-attribute decision model, not an opaque black-box algorithm.
+                        Every recommendation compares your assessed competency level against official <strong>FRAC Cadre Targets (L1–L5)</strong> using an explainable decision model.
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2 text-[11px] font-bold">
-                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-red-700">30% Competency Gap</span>
+                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-red-700">35% FRAC Competency Gap</span>
                     <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-blue-700">20% Role Relevance</span>
-                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-emerald-700">15% Career Relevance</span>
+                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-emerald-700">15% Cadre Progression</span>
                     <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-amber-700">15% Dept Priority</span>
-                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-purple-700">10% Prior Learning</span>
-                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-indigo-700">10% Emerging Demand</span>
+                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-purple-700">8% Prior Learning</span>
+                    <span class="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-indigo-700">7% Emerging Demand</span>
                 </div>
             </div>
         </div>

@@ -462,54 +462,187 @@ const ALL_50_COURSES = [
     }
 ];
 
-// Scalable Dynamic Multi-Factor Recommendation Algorithm
+// ====================================================================================
+// GOVERNMENT FRAC (Framework of Roles, Activities and Competencies) MODEL
+// Used on iGOT Karmayogi — 5 Proficiency Levels & Role Tiers for Indian Statistical Officers
+// ====================================================================================
+
+const FRAC_LEVELS = {
+    1: { level: 1, code: "L1", label: "Beginner / Awareness", meaning: "Knows the concept exists, basic terminology." },
+    2: { level: 2, code: "L2", label: "Basic / Foundational", meaning: "Can perform simple, well-defined tasks with guidance." },
+    3: { level: 3, code: "L3", label: "Working / Intermediate", meaning: "Can apply independently in standard situations." },
+    4: { level: 4, code: "L4", label: "Advanced", meaning: "Can handle complex/non-standard situations, guide others." },
+    5: { level: 5, code: "L5", label: "Expert", meaning: "Sets direction, designs frameworks, makes policy-level judgment calls." }
+};
+
+const FRAC_ROLE_TIERS = {
+    Entry: {
+        id: "Entry",
+        title: "Entry Cadre (Probationer / JSO)",
+        experienceRange: "0 – 2 Years",
+        roles: ["Probationer", "Junior Statistical Officer (JSO)", "Statistical Investigator"],
+        description: "Focuses on fundamental data collection, field scrutiny, basic tabulation, and assisted analysis."
+    },
+    Junior: {
+        id: "Junior",
+        title: "Junior Cadre (Statistical Officer / Asst. Director)",
+        experienceRange: "3 – 7 Years",
+        roles: ["Statistical Officer (SO)", "Assistant Director (AD)", "Research Officer"],
+        description: "Applies independent statistical methodology, script-based data cleaning, multiplier calculation, and survey monitoring."
+    },
+    Senior: {
+        id: "Senior",
+        title: "Senior Cadre (SSO / Deputy Director / Director+)",
+        experienceRange: "8+ Years",
+        roles: ["Senior Statistical Officer (SSO)", "Deputy Director", "Joint Director", "Director", "Director General"],
+        description: "Sets national survey direction, formulates national accounting frameworks, leads base revisions, and advises policy."
+    }
+};
+
+// Official FRAC Benchmark Reference Matrix for Indian Statistical Officers (Target L1–L5 per Role Tier)
+const FRAC_COMPETENCY_MATRIX = {
+    // 1. Statistical Competencies
+    "Survey Design": { Entry: 2, Junior: 3, Senior: 5, domain: "Statistical", note: "Senior sets frameworks & national survey directions (L5)." },
+    "Sampling": { Entry: 2, Junior: 3, Senior: 5, domain: "Statistical", note: "Senior designs multi-stage probability sampling & weights (L5)." },
+    "National Accounts": { Entry: 1, Junior: 3, Senior: 4, domain: "Statistical", note: "Junior applies SNA 2008 (L3); Senior compiles GDP/GVA (L4)." },
+    "Price Statistics": { Entry: 2, Junior: 3, Senior: 4, domain: "Statistical", note: "CPI/WPI compilation and Laspeyres index aggregation." },
+    "Labour Statistics": { Entry: 2, Junior: 3, Senior: 4, domain: "Statistical", note: "PLFS employment-unemployment indicator formulation." },
+    "Agricultural Statistics": { Entry: 2, Junior: 3, Senior: 4, domain: "Statistical", note: "Crop estimation, Agriculture Census, Land Use Statistics." },
+    "Industrial Statistics": { Entry: 2, Junior: 3, Senior: 4, domain: "Statistical", note: "Annual Survey of Industries (ASI), IIP manufacturing indices." },
+    "SDG Indicators": { Entry: 1, Junior: 2, Senior: 4, domain: "Statistical", note: "UN SDG National Indicator Framework tracking & monitoring." },
+    "Metadata Standards": { Entry: 1, Junior: 2, Senior: 4, domain: "Statistical", note: "ISO/IEC 11179, SDMX metadata & statistical classifications." },
+    "Data Quality Frameworks": { Entry: 2, Junior: 3, Senior: 5, domain: "Statistical", note: "MoSPI DQF-OS and IMF DQAF audit frameworks (L5)." },
+    "Statistical Disclosure Control": { Entry: 1, Junior: 2, Senior: 4, domain: "Statistical", note: "Anonymization & microdata dissemination standards." },
+
+    // 2. Technical Competencies
+    "Python": { Entry: 2, Junior: 3, Senior: 2, domain: "Technical", note: "Junior requires hands-on L3; Senior needs strategic/oversight L2." },
+    "R": { Entry: 2, Junior: 3, Senior: 2, domain: "Technical", note: "Junior applies L3 packages; Senior requires analytical oversight L2." },
+    "SQL": { Entry: 2, Junior: 3, Senior: 2, domain: "Technical", note: "Relational database querying and microdata extraction." },
+    "Stata": { Entry: 2, Junior: 3, Senior: 2, domain: "Technical", note: "Panel regression & survey econometric modeling." },
+    "SPSS": { Entry: 2, Junior: 2, Senior: 1, domain: "Technical", note: "Menu-driven cross-tabulation and descriptive stats." },
+    "SAS": { Entry: 1, Junior: 2, Senior: 1, domain: "Technical", note: "Legacy enterprise statistical processing systems." },
+    "GIS & Spatial Analytics": { Entry: 1, Junior: 2, Senior: 2, domain: "Technical", note: "QGIS/ArcGIS spatial sampling and satellite data integration." },
+    "Data Visualization": { Entry: 2, Junior: 3, Senior: 3, domain: "Technical", note: "Interactive policy dashboards, PowerBI, Plotly, and infographics." },
+    "AI/ML": { Entry: 1, Junior: 2, Senior: 3, domain: "Technical", note: "Machine learning, automated imputation, satellite AI (L3 strategic)." },
+    "Data Engineering & Big Data": { Entry: 1, Junior: 2, Senior: 2, domain: "Technical", note: "ETL pipelines, Spark, high-frequency transaction data." },
+    "Cloud Computing & APIs": { Entry: 1, Junior: 2, Senior: 2, domain: "Technical", note: "MeitY MeghRaj cloud, containerization, RESTful data APIs." },
+    "Open Data": { Entry: 1, Junior: 2, Senior: 3, domain: "Technical", note: "Open Government Data (data.gov.in) and FAIR data governance." },
+
+    // 3. Digital Governance & Security
+    "Cybersecurity": { Entry: 1, Junior: 2, Senior: 3, domain: "Digital Governance", note: "CERT-In guidelines, password hygiene, data classification." },
+    "Data Privacy & DPDP Act": { Entry: 1, Junior: 2, Senior: 4, domain: "Digital Governance", note: "DPDP Act 2023 compliance, data fiduciary obligations, DPIA." },
+    "Digital Signatures": { Entry: 1, Junior: 2, Senior: 2, domain: "Digital Governance", note: "e-Office DSC/eSign validation & official record authentication." },
+    "Government Cloud": { Entry: 1, Junior: 2, Senior: 3, domain: "Digital Governance", note: "MeghRaj cloud security, sovereign data residency, audit logs." },
+    "Digital Public Infrastructure": { Entry: 1, Junior: 2, Senior: 4, domain: "Digital Governance", note: "India Stack (Aadhaar, DigiLocker, UPI, eSign) in statistics." },
+    "Data Governance & Metadata Standards": { Entry: 1, Junior: 2, Senior: 4, domain: "Digital Governance", note: "National Data Governance Framework Policy (NDGFP)." },
+
+    // 4. Behavioural & Managerial Competencies
+    "Leadership": { Entry: 1, Junior: 2, Senior: 5, domain: "Behavioural", note: "Senior sets institutional vision & policy direction (L5)." },
+    "Communication & Dissemination": { Entry: 2, Junior: 3, Senior: 4, domain: "Behavioural", note: "Drafting technical statistical reports & policymaker briefs." },
+    "Project Management": { Entry: 1, Junior: 2, Senior: 4, domain: "Managerial", note: "Managing survey timelines, milestone tracking, and field risks." },
+    "Ethics & Integrity": { Entry: 2, Junior: 3, Senior: 4, domain: "Behavioural", note: "UN Fundamental Principles of Official Statistics & professional independence." },
+    "Decision Making": { Entry: 1, Junior: 3, Senior: 5, domain: "Managerial", note: "Evidence-based policy choices & methodological trade-offs (L5)." },
+    "Change Management": { Entry: 1, Junior: 2, Senior: 4, domain: "Managerial", note: "Driving digital transitions and statistical modernization." }
+};
+
+// Helper: Determine Officer's FRAC Role Tier based on Designation & Experience
+function getOfficerRoleTier(user) {
+    if (!user) return 'Junior';
+    const desig = String(user.designation || user.role || '').toLowerCase();
+    const exp = parseFloat(user.experienceYears || user.experience_years || 0);
+
+    if (
+        desig.includes('director') || 
+        desig.includes('senior statistical officer') || 
+        desig.includes('sso') || 
+        desig.includes('joint director') ||
+        desig.includes('deputy director') ||
+        exp >= 8
+    ) {
+        return 'Senior';
+    }
+
+    if (
+        desig.includes('junior') || 
+        desig.includes('jso') || 
+        desig.includes('probationer') || 
+        desig.includes('investigator') || 
+        (exp < 3 && exp > 0)
+    ) {
+        return 'Entry';
+    }
+
+    return 'Junior'; // Default for Statistical Officer (SO), Assistant Director (AD), 3–7 yrs
+}
+
+// Helper: Get FRAC Benchmark Target for a Competency & Role Tier
+function getFracRequirement(compName, roleTier = 'Junior') {
+    const entry = FRAC_COMPETENCY_MATRIX[compName];
+    if (entry && entry[roleTier] !== undefined) {
+        return entry[roleTier];
+    }
+    // Standard default fallback based on tier
+    return roleTier === 'Senior' ? 4 : (roleTier === 'Entry' ? 2 : 3);
+}
+
+// Scalable Dynamic Multi-Factor Recommendation Algorithm using FRAC Matrix Reference
 function calculateDynamicRecommendations(userProfile, coursesList) {
     const userComps = userProfile.competencies || {};
+    const officerTier = getOfficerRoleTier(userProfile);
 
     return coursesList.map(course => {
         let maxGap = 0;
         let matchedCompetency = "";
+        let expectedFracLevel = 3;
+        let officerCurrentLevel = 1;
 
-        // Evaluate skill gaps addressed by this course
+        // Evaluate skill gaps addressed by this course against FRAC Reference Matrix
         course.competencies.forEach(compName => {
-            const userComp = userComps[compName];
-            if (userComp) {
-                const gap = Math.max(0, userComp.required - userComp.current);
-                if (gap > maxGap) {
-                    maxGap = gap;
-                    matchedCompetency = compName;
-                }
-            } else {
-                // Default moderate gap if not assessed
-                maxGap = Math.max(maxGap, 1);
+            const fracTarget = getFracRequirement(compName, officerTier);
+            let currentLvl = 1;
+
+            if (userComps[compName]) {
+                currentLvl = typeof userComps[compName] === 'object' ? userComps[compName].current : userComps[compName];
+            }
+
+            const gap = Math.max(0, fracTarget - currentLvl);
+            if (gap > maxGap) {
+                maxGap = gap;
+                matchedCompetency = compName;
+                expectedFracLevel = fracTarget;
+                officerCurrentLevel = currentLvl;
             }
         });
 
         // 6 Weighted Sub-scores (0-100 scale)
-        const gapWeight = maxGap >= 2 ? 96 : (maxGap === 1 ? 84 : 50);
-        const roleRelevance = course.category === "Technical" && userProfile.designation.includes("Analytics") ? 94 : 88;
-        const careerImpact = userProfile.experienceYears < 10 ? 92 : 86;
-        const deptPriority = course.competencies.includes("AI/ML") || course.competencies.includes("Python") ? 96 : 90;
+        const gapWeight = maxGap >= 2 ? 98 : (maxGap === 1 ? 86 : 48);
+        const roleRelevance = course.category === "Technical" && String(userProfile.designation).includes("Analytics") ? 95 : 88;
+        const careerImpact = officerTier === "Entry" ? 94 : (officerTier === "Junior" ? 90 : 85);
+        const deptPriority = course.competencies.includes("AI/ML") || course.competencies.includes("Python") || course.competencies.includes("Survey Design") ? 96 : 89;
         const priorLearning = 85;
-        const emergingDemand = course.category === "Technical" ? 95 : 82;
+        const emergingDemand = course.category === "Technical" ? 94 : 84;
 
-        // Transparent Multi-factor Formula
+        // Transparent Multi-factor Formula aligned with FRAC
         const finalScore = Math.round(
-            (0.30 * gapWeight) +
+            (0.35 * gapWeight) +
             (0.20 * roleRelevance) +
             (0.15 * careerImpact) +
             (0.15 * deptPriority) +
-            (0.10 * priorLearning) +
-            (0.10 * emergingDemand)
+            (0.08 * priorLearning) +
+            (0.07 * emergingDemand)
         );
 
         let whyText = "";
+        const tierTitle = FRAC_ROLE_TIERS[officerTier].title;
+        const targetCode = `L${expectedFracLevel} (${FRAC_LEVELS[expectedFracLevel].label})`;
+        const currentCode = `L${officerCurrentLevel} (${FRAC_LEVELS[officerCurrentLevel].label})`;
+
         if (maxGap >= 2) {
-            whyText = `Directly addresses a critical ${maxGap}-level competency gap in ${matchedCompetency || course.competencies[0]} for ${userProfile.name}'s role as ${userProfile.designation}.`;
+            whyText = `Directly bridges a critical ${maxGap}-level FRAC gap in ${matchedCompetency || course.competencies[0]} (Current: ${currentCode} vs ${tierTitle} Benchmark: ${targetCode}).`;
         } else if (maxGap === 1) {
-            whyText = `Bridges an identified 1-level gap in ${matchedCompetency || course.competencies[0]} to meet departmental standards in ${userProfile.department}.`;
+            whyText = `Bridges an identified 1-level FRAC gap in ${matchedCompetency || course.competencies[0]} to achieve ${tierTitle} proficiency (${targetCode}).`;
         } else {
-            whyText = `Recommended as an advanced elective to deepen official statistical specialization and career progression.`;
+            whyText = `Recommended advanced elective aligning with ${tierTitle} continuous learning and national statistical modernizations.`;
         }
 
         return {
@@ -517,6 +650,9 @@ function calculateDynamicRecommendations(userProfile, coursesList) {
             matchScore: finalScore,
             whyRecommended: whyText,
             priority: maxGap >= 2 ? "Critical" : (maxGap === 1 ? "High" : "Moderate"),
+            fracTargetLevel: expectedFracLevel,
+            officerCurrentLevel: officerCurrentLevel,
+            fracRoleTier: officerTier,
             breakdown: {
                 gapWeight,
                 roleRelevance,
@@ -535,6 +671,9 @@ const USERS_50_DATABASE = generate50Users();
 const MOCK_DATA = {
     users: USERS_50_DATABASE,
     currentUser: USERS_50_DATABASE[0], // Ananya Sharma
+    fracLevels: FRAC_LEVELS,
+    fracRoleTiers: FRAC_ROLE_TIERS,
+    fracMatrix: FRAC_COMPETENCY_MATRIX,
     competencyFramework: [
         {
             domainId: "stat",
@@ -544,16 +683,16 @@ const MOCK_DATA = {
             icon: "chart-bar",
             color: "blue",
             competencies: [
-                { id: "comp_01", name: "Survey Design", description: "Formulation of survey objectives, sampling frame construction, questionnaire design, pilot testing, and field protocol.", currentLevel: 4, requiredLevel: 4, gap: 0, priority: "None", domain: "Statistical" },
-                { id: "comp_02", name: "Sampling", description: "Theory and application of probability sampling, stratification, multistage clustering, sampling weight calculation, and variance estimation.", currentLevel: 4, requiredLevel: 4, gap: 0, priority: "None", domain: "Statistical" },
-                { id: "comp_03", name: "National Accounts", description: "Compilation of Gross Domestic Product (GDP), Gross Value Added (GVA), Supply-Use Tables, and SNA 2008.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
-                { id: "comp_04", name: "Price Statistics", description: "Construction and compilation of Consumer Price Index (CPI), Wholesale Price Index (WPI), IIP, and Laspeyres indices.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
-                { id: "comp_05", name: "Labour Statistics", description: "Measurement of labour force participation, unemployment rates, Periodic Labour Force Survey (PLFS) indicators.", currentLevel: 3, requiredLevel: 3, gap: 0, priority: "None", domain: "Statistical" },
-                { id: "comp_06", name: "SDG Indicators", description: "Tracking, mapping, and monitoring UN Sustainable Development Goals (SDG) National Indicator Framework (NIF) metrics.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
-                { id: "comp_07", name: "Agricultural Statistics", description: "Crop estimation surveys, Land Use Statistics (LUS), Agriculture Census, and yield forecasting.", currentLevel: 2, requiredLevel: 3, gap: 1, priority: "Moderate", domain: "Statistical" },
-                { id: "comp_08", name: "Industrial Statistics", description: "Annual Survey of Industries (ASI), Index of Industrial Production (IIP), and Core Industries.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
-                { id: "comp_09", name: "Statistical Disclosure Control", description: "Methods for anonymization, k-anonymity, differential privacy, and microdata dissemination privacy standards.", currentLevel: 2, requiredLevel: 4, gap: 2, priority: "High", domain: "Statistical" },
-                { id: "comp_10", name: "Data Quality Frameworks", description: "Implementation of MoSPI Data Quality Framework for Official Statistics (DQF-OS) and IMF DQAF.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Statistical" }
+                { id: "comp_01", name: "Survey Design", description: "Formulation of survey objectives, sampling frame construction, questionnaire design, pilot testing, and field protocol.", currentLevel: 4, requiredLevel: 5, fracEntry: 2, fracJunior: 3, fracSenior: 5, gap: 1, priority: "High", domain: "Statistical" },
+                { id: "comp_02", name: "Sampling", description: "Theory and application of probability sampling, stratification, multistage clustering, sampling weight calculation, and variance estimation.", currentLevel: 4, requiredLevel: 5, fracEntry: 2, fracJunior: 3, fracSenior: 5, gap: 1, priority: "High", domain: "Statistical" },
+                { id: "comp_03", name: "National Accounts", description: "Compilation of Gross Domestic Product (GDP), Gross Value Added (GVA), Supply-Use Tables, and SNA 2008.", currentLevel: 3, requiredLevel: 4, fracEntry: 1, fracJunior: 3, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
+                { id: "comp_04", name: "Price Statistics", description: "Construction and compilation of Consumer Price Index (CPI), Wholesale Price Index (WPI), IIP, and Laspeyres indices.", currentLevel: 3, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
+                { id: "comp_05", name: "Labour Statistics", description: "Measurement of labour force participation, unemployment rates, Periodic Labour Force Survey (PLFS) indicators.", currentLevel: 3, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
+                { id: "comp_06", name: "SDG Indicators", description: "Tracking, mapping, and monitoring UN Sustainable Development Goals (SDG) National Indicator Framework (NIF) metrics.", currentLevel: 3, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
+                { id: "comp_07", name: "Agricultural Statistics", description: "Crop estimation surveys, Land Use Statistics (LUS), Agriculture Census, and yield forecasting.", currentLevel: 2, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 2, priority: "Critical", domain: "Statistical" },
+                { id: "comp_08", name: "Industrial Statistics", description: "Annual Survey of Industries (ASI), Index of Industrial Production (IIP), and Core Industries.", currentLevel: 3, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Statistical" },
+                { id: "comp_09", name: "Statistical Disclosure Control", description: "Methods for anonymization, k-anonymity, differential privacy, and microdata dissemination privacy standards.", currentLevel: 2, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 2, priority: "Critical", domain: "Statistical" },
+                { id: "comp_10", name: "Data Quality Frameworks", description: "Implementation of MoSPI Data Quality Framework for Official Statistics (DQF-OS) and IMF DQAF.", currentLevel: 3, requiredLevel: 5, fracEntry: 2, fracJunior: 3, fracSenior: 5, gap: 2, priority: "Critical", domain: "Statistical" }
             ]
         },
         {
@@ -564,14 +703,16 @@ const MOCK_DATA = {
             icon: "cpu",
             color: "emerald",
             competencies: [
-                { id: "comp_11", name: "AI/ML", description: "Machine learning algorithms, automated imputation, NLP for text, and computer vision on satellite imagery.", currentLevel: 1, requiredLevel: 3, gap: 2, priority: "Critical", domain: "Technical" },
-                { id: "comp_12", name: "Python", description: "Python programming for data wrangling (Pandas/NumPy), survey multiplier processing, statistical modeling, and automation.", currentLevel: 2, requiredLevel: 4, gap: 2, priority: "High", domain: "Technical" },
-                { id: "comp_13", name: "Data Visualization", description: "Creating interactive dashboards, policy heatmaps, PowerBI/Tableau, and Plotly charts.", currentLevel: 2, requiredLevel: 4, gap: 2, priority: "High", domain: "Technical" },
-                { id: "comp_14", name: "R", description: "R programming for statistical analysis (Tidyverse, survey package), econometrics, and survey estimation.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Technical" },
-                { id: "comp_15", name: "SQL", description: "Relational database querying, multi-table joins, subqueries, indexing, and data warehousing.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Technical" },
-                { id: "comp_16", name: "GIS & Spatial Analytics", description: "Geographic Information Systems (QGIS, ArcGIS, GeoPandas) for spatial sampling and satellite data fusion.", currentLevel: 2, requiredLevel: 3, gap: 1, priority: "Moderate", domain: "Technical" },
-                { id: "comp_17", name: "Data Engineering & Big Data", description: "ETL pipelines, Apache Spark, Airflow, API development, and managing high-frequency transaction data.", currentLevel: 1, requiredLevel: 3, gap: 2, priority: "Critical", domain: "Technical" },
-                { id: "comp_18", name: "Cloud Computing & APIs", description: "Cloud-native services (MeitY MeghRaj), containerization (Docker), and RESTful API deployment.", currentLevel: 1, requiredLevel: 3, gap: 2, priority: "Critical", domain: "Technical" }
+                { id: "comp_11", name: "Python", description: "Python programming for data wrangling (Pandas/NumPy), survey multiplier processing, statistical modeling, and automation.", currentLevel: 2, requiredLevel: 3, fracEntry: 2, fracJunior: 3, fracSenior: 2, gap: 1, priority: "Moderate", domain: "Technical" },
+                { id: "comp_12", name: "R", description: "R programming for statistical analysis (Tidyverse, survey package), econometrics, and survey estimation.", currentLevel: 3, requiredLevel: 3, fracEntry: 2, fracJunior: 3, fracSenior: 2, gap: 0, priority: "None", domain: "Technical" },
+                { id: "comp_13", name: "SQL", description: "Relational database querying, multi-table joins, subqueries, indexing, and data warehousing.", currentLevel: 3, requiredLevel: 3, fracEntry: 2, fracJunior: 3, fracSenior: 2, gap: 0, priority: "None", domain: "Technical" },
+                { id: "comp_14", name: "Stata", description: "Microdata econometric analysis, panel regression, survey data modeling, and econometric estimation.", currentLevel: 2, requiredLevel: 3, fracEntry: 2, fracJunior: 3, fracSenior: 2, gap: 1, priority: "Moderate", domain: "Technical" },
+                { id: "comp_15", name: "SPSS", description: "Menu-driven statistical tabulation, descriptive statistics, and cross-tabulation.", currentLevel: 2, requiredLevel: 2, fracEntry: 2, fracJunior: 2, fracSenior: 1, gap: 0, priority: "None", domain: "Technical" },
+                { id: "comp_16", name: "GIS & Spatial Analytics", description: "Geographic Information Systems (QGIS, ArcGIS, GeoPandas) for spatial sampling and satellite data fusion.", currentLevel: 2, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 2, gap: 0, priority: "None", domain: "Technical" },
+                { id: "comp_17", name: "Data Visualization", description: "Creating interactive dashboards, policy heatmaps, PowerBI/Tableau, and Plotly charts.", currentLevel: 2, requiredLevel: 3, fracEntry: 2, fracJunior: 3, fracSenior: 3, gap: 1, priority: "Moderate", domain: "Technical" },
+                { id: "comp_18", name: "AI/ML", description: "Machine learning algorithms, automated imputation, NLP for text, and satellite AI models (strategic understanding).", currentLevel: 1, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 3, gap: 1, priority: "Moderate", domain: "Technical" },
+                { id: "comp_19", name: "Cloud Computing & APIs", description: "Cloud-native services (MeitY MeghRaj), containerization, and RESTful API deployment.", currentLevel: 1, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 2, gap: 1, priority: "Moderate", domain: "Technical" },
+                { id: "comp_20", name: "Data Engineering & Big Data", description: "ETL pipelines, Apache Spark, Airflow, API development, and managing high-frequency transaction data.", currentLevel: 1, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 2, gap: 1, priority: "Moderate", domain: "Technical" }
             ]
         },
         {
@@ -582,10 +723,11 @@ const MOCK_DATA = {
             icon: "shield-check",
             color: "amber",
             competencies: [
-                { id: "comp_19", name: "Cybersecurity", description: "Government security guidelines (CERT-In, MeitY), password hygiene, phishing defense, data classification.", currentLevel: 2, requiredLevel: 3, gap: 1, priority: "Moderate", domain: "Digital Governance" },
-                { id: "comp_20", name: "Data Privacy & DPDP Act", description: "Compliance with DPDP Act 2023, data fiduciary obligations, consent notices, and DPIA.", currentLevel: 2, requiredLevel: 4, gap: 2, priority: "High", domain: "Digital Governance" },
-                { id: "comp_21", name: "Digital Public Infrastructure", description: "Leveraging India Stack (Aadhaar, DigiLocker, UPI, eSign) in statistical data capture.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Digital Governance" },
-                { id: "comp_22", name: "Data Governance & Metadata Standards", description: "National Data Governance Framework Policy (NDGFP), ISO/IEC 11179, and Open Government Data.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Digital Governance" }
+                { id: "comp_21", name: "Cybersecurity", description: "Government security guidelines (CERT-In, MeitY), password hygiene, phishing defense, data classification.", currentLevel: 2, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 3, gap: 0, priority: "None", domain: "Digital Governance" },
+                { id: "comp_22", name: "Data Privacy & DPDP Act", description: "Compliance with DPDP Act 2023, data fiduciary obligations, consent notices, and DPIA.", currentLevel: 2, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 2, priority: "Critical", domain: "Digital Governance" },
+                { id: "comp_23", name: "Digital Signatures", description: "DSC/eSign verification, document signing, and e-Office compliance.", currentLevel: 2, requiredLevel: 2, fracEntry: 1, fracJunior: 2, fracSenior: 2, gap: 0, priority: "None", domain: "Digital Governance" },
+                { id: "comp_24", name: "Digital Public Infrastructure", description: "Leveraging India Stack (Aadhaar, DigiLocker, UPI, eSign) in statistical data capture.", currentLevel: 3, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Digital Governance" },
+                { id: "comp_25", name: "Data Governance & Metadata Standards", description: "National Data Governance Framework Policy (NDGFP), ISO/IEC 11179, and Open Government Data.", currentLevel: 3, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Digital Governance" }
             ]
         },
         {
@@ -596,10 +738,12 @@ const MOCK_DATA = {
             icon: "users",
             color: "purple",
             competencies: [
-                { id: "comp_23", name: "Leadership", description: "Inspiring teams, setting strategic statistical priorities, conflict resolution, and driving institutional excellence.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Behavioural" },
-                { id: "comp_24", name: "Project Management", description: "Managing timelines, milestone tracking, budget allocation, field logistics, and risk mitigation.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Managerial" },
-                { id: "comp_25", name: "Ethics & Integrity", description: "Commitment to UN Fundamental Principles of Official Statistics, impartiality, and professional independence.", currentLevel: 4, requiredLevel: 4, gap: 0, priority: "None", domain: "Behavioural" },
-                { id: "comp_26", name: "Communication & Dissemination", description: "Drafting technical statistical reports, press releases, data storytelling, and presenting to policymakers.", currentLevel: 3, requiredLevel: 4, gap: 1, priority: "Moderate", domain: "Behavioural" }
+                { id: "comp_26", name: "Leadership", description: "Inspiring teams, setting strategic statistical priorities, conflict resolution, and driving institutional excellence.", currentLevel: 3, requiredLevel: 5, fracEntry: 1, fracJunior: 2, fracSenior: 5, gap: 2, priority: "Critical", domain: "Behavioural" },
+                { id: "comp_27", name: "Project Management", description: "Managing timelines, milestone tracking, budget allocation, field logistics, and risk mitigation.", currentLevel: 3, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Managerial" },
+                { id: "comp_28", name: "Ethics & Integrity", description: "Commitment to UN Fundamental Principles of Official Statistics, impartiality, and professional independence.", currentLevel: 4, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 0, priority: "None", domain: "Behavioural" },
+                { id: "comp_29", name: "Communication & Dissemination", description: "Drafting technical statistical reports, press releases, data storytelling, and presenting to policymakers.", currentLevel: 3, requiredLevel: 4, fracEntry: 2, fracJunior: 3, fracSenior: 4, gap: 1, priority: "Moderate", domain: "Behavioural" },
+                { id: "comp_30", name: "Decision Making", description: "Evidence-based policy choices, methodology trade-offs, crisis management, and national data strategy.", currentLevel: 3, requiredLevel: 5, fracEntry: 1, fracJunior: 3, fracSenior: 5, gap: 2, priority: "Critical", domain: "Managerial" },
+                { id: "comp_31", name: "Change Management", description: "Modernization, digital transition adoption, institutional reform guidance, and capacity building.", currentLevel: 2, requiredLevel: 4, fracEntry: 1, fracJunior: 2, fracSenior: 4, gap: 2, priority: "Critical", domain: "Managerial" }
             ]
         }
     ],

@@ -223,10 +223,10 @@ function renderLearnerDashboard(state) {
                                     <span class="text-xs font-bold text-navy-900" style="color: #0B2545;">${comp.name}</span>
                                     <span class="text-[10px] text-slate-500">(${comp.domain})</span>
                                 </div>
-                                <div class="text-xs text-slate-600 flex items-center gap-3">
-                                    <span>Current: <strong class="text-slate-800">${levelLabels[comp.currentLevel]}</strong></span>
+                                <div class="text-xs text-slate-600 flex items-center gap-3 flex-wrap">
+                                    <span>Current: <strong class="text-slate-800">${levelLabels[comp.currentLevel] || 'L2 Basic'}</strong></span>
                                     <span class="text-slate-400">→</span>
-                                    <span>Required: <strong class="text-orange-700">${levelLabels[comp.requiredLevel]}</strong></span>
+                                    <span>FRAC Cadre Target: <strong class="text-orange-700">${levelLabels[comp.requiredLevel] || 'L4 Advanced'}</strong></span>
                                     <span class="text-slate-400">|</span>
                                     <span>Gap: <strong class="text-red-600">${comp.gap} Levels</strong></span>
                                 </div>
