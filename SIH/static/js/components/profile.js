@@ -304,8 +304,11 @@ window.openEditProfileModal = function(overrideUser) {
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Official Name</label>
-                            <input type="text" id="modal_prof_name" value="${user.name || ''}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
+                            <label class="font-bold text-slate-700 block mb-1">Official Name</label>
+                            <div class="relative">
+                                <input type="text" id="modal_prof_name" value="${user.name || ''}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
+                                <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            </div>
                         </div>
                         <div>
                             <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Ministry / Administration</label>
