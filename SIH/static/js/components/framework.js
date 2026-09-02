@@ -397,6 +397,7 @@ function showCompetencyLevelModal(compId) {
                 <div class="flex items-center gap-1.5">
                     ${targetComp.currentLevel === lvl ? '<span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">Your Current Assessed Level</span>' : ''}
                     ${targetComp.requiredLevel === lvl && targetComp.currentLevel !== lvl ? '<span class="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full font-bold">Cadre Required Target</span>' : ''}
+                    ${lvl > targetComp.requiredLevel ? `<span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">Beyond Cadre Target (L${targetComp.requiredLevel} Max)</span>` : ''}
                 </div>
             </div>
             <p class="text-[11px] text-slate-700">${fracRubrics[lvl]}</p>

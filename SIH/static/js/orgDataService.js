@@ -850,5 +850,129 @@
         const generated = window.getDesignationsForDepartment(defaultDept);
         return generated.map(g => g.fullTitle);
     };
+
+    // Official Cadre Competency Benchmark Matrix based on Ministry Framework PDF & v2 Standard
+    const CADRE_COMPETENCY_REQUIREMENTS = {
+        // Domain A — Statistical Competencies
+        "Survey Design": { R1: 1, R2: 2, R3: 3, R4: 4, R5: 3, R6: 2 },
+        "Sampling": { R1: 1, R2: 2, R3: 3, R4: 4, R5: 3, R6: 2 },
+        "National Accounts": { R1: 1, R2: 1, R3: 3, R4: 4, R5: 4, R6: 3 },
+        "Price Statistics": { R1: 1, R2: 1, R3: 3, R4: 4, R5: 4, R6: 2 },
+        "Labour Statistics": { R1: 1, R2: 1, R3: 3, R4: 4, R5: 4, R6: 2 },
+        "Agricultural Statistics": { R1: 1, R2: 1, R3: 3, R4: 4, R5: 4, R6: 2 },
+        "Industrial Statistics": { R1: 1, R2: 1, R3: 3, R4: 4, R5: 4, R6: 2 },
+        "SDG Indicators": { R1: 1, R2: 1, R3: 2, R4: 3, R5: 4, R6: 4 },
+        "Metadata Standards": { R1: 1, R2: 2, R3: 3, R4: 4, R5: 3, R6: 2 },
+        "Data Quality Frameworks": { R1: 1, R2: 3, R3: 3, R4: 4, R5: 4, R6: 3 },
+
+        // Domain B — Technical Competencies
+        "Python": { R1: 1, R2: 1, R3: 3, R4: 3, R5: 2, R6: 1 },
+        "R": { R1: 1, R2: 1, R3: 3, R4: 3, R5: 2, R6: 1 },
+        "SQL": { R1: 1, R2: 1, R3: 3, R4: 3, R5: 2, R6: 1 },
+        "Stata": { R1: 1, R2: 1, R3: 2, R4: 3, R5: 2, R6: 1 },
+        "SPSS": { R1: 1, R2: 1, R3: 2, R4: 2, R5: 1, R6: 1 },
+        "SAS": { R1: 1, R2: 1, R3: 1, R4: 2, R5: 2, R6: 1 },
+        "GIS": { R1: 1, R2: 2, R3: 2, R4: 2, R5: 1, R6: 1 },
+        "Data Visualization": { R1: 1, R2: 1, R3: 3, R4: 3, R5: 3, R6: 2 },
+        "AI/ML": { R1: 1, R2: 1, R3: 2, R4: 3, R5: 2, R6: 2 },
+        "Cloud Computing": { R1: 1, R2: 1, R3: 1, R4: 2, R5: 3, R6: 3 },
+        "APIs": { R1: 1, R2: 1, R3: 2, R4: 2, R5: 2, R6: 1 },
+        "Open Data": { R1: 1, R2: 1, R3: 2, R4: 3, R5: 3, R6: 3 },
+
+        // Domain C — Digital Governance
+        "Cybersecurity": { R1: 1, R2: 2, R3: 2, R4: 3, R5: 4, R6: 4 },
+        "Data Privacy": { R1: 2, R2: 2, R3: 3, R4: 3, R5: 4, R6: 4 },
+        "Digital Signatures": { R1: 1, R2: 1, R3: 2, R4: 2, R5: 3, R6: 2 },
+        "Government Cloud": { R1: 1, R2: 1, R3: 1, R4: 2, R5: 3, R6: 3 },
+        "Digital Public Infrastructure": { R1: 1, R2: 1, R3: 1, R4: 2, R5: 3, R6: 4 },
+
+        // Domain D & E — Behavioural & Managerial
+        "Leadership": { R1: 1, R2: 2, R3: 2, R4: 3, R5: 4, R6: 5 },
+        "Communication": { R1: 2, R2: 3, R3: 3, R4: 3, R5: 4, R6: 4 },
+        "Project Management": { R1: 1, R2: 2, R3: 2, R4: 3, R5: 4, R6: 4 },
+        "Ethics": { R1: 3, R2: 3, R3: 3, R4: 3, R5: 4, R6: 4 },
+        "Decision Making": { R1: 1, R2: 2, R3: 2, R4: 3, R5: 4, R6: 5 },
+        "Change Management": { R1: 1, R2: 1, R3: 1, R4: 2, R5: 3, R6: 4 },
+
+        // Domain F — Sectoral
+        "Sectoral": { R1: 1, R2: 2, R3: 3, R4: 4, R5: 4, R6: 3 }
+    };
+
+    window.FRAMEWORK_LEVEL_NAMES = {
+        1: "Awareness",
+        2: "Working (Routine)",
+        3: "Practitioner",
+        4: "Advanced",
+        5: "Expert / Strategic"
+    };
+
+    window.FRAMEWORK_LEVEL_SUBTITLES = {
+        1: "Basic awareness of official statistical concepts and terminology",
+        2: "Independent execution of routine departmental statistical workflows",
+        3: "Adapts to complex microdata, applies methodology & guides peer teams",
+        4: "Designs national statistical standards, methods & quality frameworks",
+        5: "Sets national policy, statistical doctrine & strategic vision"
+    };
+
+    window.getOfficerRoleGrade = function(user) {
+        if (!user) return 'R3';
+        if (user.roleGrade && /^R[1-6]$/i.test(user.roleGrade)) return user.roleGrade.toUpperCase();
+        if (user.role_grade && /^R[1-6]$/i.test(user.role_grade)) return user.role_grade.toUpperCase();
+        
+        const desig = String(user.designation || user.role || '').toLowerCase();
+        const exp = parseFloat(user.experienceYears || user.experience_years || 0);
+
+        // Check for explicit R1-R6 markers
+        const match = desig.match(/\b(r[1-6])\b/i);
+        if (match) return match[1].toUpperCase();
+
+        if (desig.includes('director general') || desig.includes('additional director general') || desig.includes('adg') || desig.includes('dg')) {
+            return 'R6';
+        }
+        if (desig.includes('director') || desig.includes('ddg') || exp >= 10) {
+            return 'R5';
+        }
+        if (desig.includes('deputy director') || exp >= 7) {
+            return 'R4';
+        }
+        if (desig.includes('assistant director') || desig.includes('statistical officer') || (exp >= 3 && exp < 7)) {
+            return 'R3';
+        }
+        if (desig.includes('senior statistical officer') || desig.includes('sso') || (exp >= 2 && exp < 4)) {
+            return 'R2';
+        }
+        if (desig.includes('junior') || desig.includes('jso') || desig.includes('probationer') || desig.includes('enumerator') || desig.includes('investigator') || exp < 2) {
+            return 'R1';
+        }
+
+        return 'R3';
+    };
+
+    window.getCompetencyFrameworkBenchmark = function(compKey, userOrGrade) {
+        let grade = 'R3';
+        if (typeof userOrGrade === 'string' && /^R[1-6]$/i.test(userOrGrade)) {
+            grade = userOrGrade.toUpperCase();
+        } else if (typeof userOrGrade === 'object') {
+            grade = window.getOfficerRoleGrade(userOrGrade);
+        }
+
+        const cleanKey = String(compKey || '').trim();
+
+        // 1. Exact match in framework
+        if (CADRE_COMPETENCY_REQUIREMENTS[cleanKey] && CADRE_COMPETENCY_REQUIREMENTS[cleanKey][grade] !== undefined) {
+            return CADRE_COMPETENCY_REQUIREMENTS[cleanKey][grade];
+        }
+
+        // 2. Fuzzy substring match
+        for (const [k, v] of Object.entries(CADRE_COMPETENCY_REQUIREMENTS)) {
+            if (cleanKey.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cleanKey.toLowerCase())) {
+                if (v[grade] !== undefined) return v[grade];
+            }
+        }
+
+        // 3. Fallback based on Role Grade
+        const gradeDefaults = { R1: 1, R2: 2, R3: 3, R4: 4, R5: 4, R6: 5 };
+        return gradeDefaults[grade] || 3;
+    };
 })(window);
 

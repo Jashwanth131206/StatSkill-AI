@@ -576,7 +576,12 @@ function getOfficerRoleTier(user) {
 }
 
 // Helper: Get FRAC Benchmark Target for a Competency & Role Tier
-function getFracRequirement(compName, roleTier = 'Junior') {
+function getFracRequirement(compName, roleTierOrUser = 'Junior') {
+    if (typeof window.getCompetencyFrameworkBenchmark === 'function') {
+        const target = window.getCompetencyFrameworkBenchmark(compName, roleTierOrUser);
+        if (target !== undefined) return target;
+    }
+    const roleTier = typeof roleTierOrUser === 'string' && ['Entry', 'Junior', 'Senior'].includes(roleTierOrUser) ? roleTierOrUser : 'Junior';
     const entry = FRAC_COMPETENCY_MATRIX[compName];
     if (entry && entry[roleTier] !== undefined) {
         return entry[roleTier];

@@ -6,14 +6,14 @@
 let currentAssessmentStep = 1;
 let assessmentResponses = {
     selfRatings: {
-        "Sampling": 4,
-        "Survey Design": 4,
+        "Sampling": 3,
+        "Survey Design": 3,
         "Python": 2,
         "AI/ML": 1,
         "Data Visualization": 2,
         "National Accounts": 3,
         "Cybersecurity": 2,
-        "Ethics": 4
+        "Ethics": 3
     },
     knowledgeAnswers: {}
 };
@@ -422,32 +422,97 @@ function getAssessmentStepHTML(step, user, state) {
         </div>
         `;
     } else if (step === 2) {
+        const activeUser = user || (window.store && window.store.state && window.store.state.user) || {};
+        const roleGrade = (typeof window.getOfficerRoleGrade === 'function') 
+            ? window.getOfficerRoleGrade(activeUser) 
+            : (activeUser.roleGrade || activeUser.role_grade || 'R3');
+        const desigTitle = activeUser.designation || 'Assistant Director (Statistics)';
+        const levelNames = window.FRAMEWORK_LEVEL_NAMES || { 
+            1: "Awareness", 
+            2: "Working (Routine)", 
+            3: "Practitioner", 
+            4: "Advanced", 
+            5: "Expert / Strategic" 
+        };
+        const levelDescs = window.FRAMEWORK_LEVEL_SUBTITLES || {};
+
+        const statComps = [
+            { key: "Survey Design", label: "Survey Design & Questionnaire Formulation" },
+            { key: "Sampling", label: "Multi-Stage Probability Sampling & Weighting" },
+            { key: "National Accounts", label: "National Accounts (SNA 2008) & GVA Compilation" }
+        ];
+
         return `
-        <div class="space-y-4">
-            <h2 class="text-lg font-bold text-navy-900" style="color: #0B2545;">Step 2 — Core Statistical Competencies Self-Rating</h2>
-            <p class="text-xs text-slate-600">Rate your current independent execution capability on a 1 (Awareness) to 5 (Expert) scale.</p>
+        <div class="space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-navy-900" style="color: #0B2545;">Step 2 — Core Statistical Competencies Self-Rating</h2>
+                    <p class="text-xs text-slate-600">Rate your current capability against your cadre's required proficiency scale.</p>
+                </div>
+                <div class="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-800 flex items-center gap-2 self-start sm:self-auto shadow-xs">
+                    <i class="fa-solid fa-id-badge text-blue-600"></i>
+                    <span>Cadre: <strong>${roleGrade}</strong> (${desigTitle})</span>
+                </div>
+            </div>
 
             <div class="space-y-4 text-xs">
-                ${[
-                    { key: "Survey Design", label: "Survey Design & Questionnaire Formulation", curr: assessmentResponses.selfRatings["Survey Design"] },
-                    { key: "Sampling", label: "Multi-Stage Probability Sampling & Weighting", curr: assessmentResponses.selfRatings["Sampling"] },
-                    { key: "National Accounts", label: "National Accounts (SNA 2008) & GVA Compilation", curr: assessmentResponses.selfRatings["National Accounts"] }
-                ].map(item => `
-                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-navy-900">${item.label}</span>
-                            <span class="text-xs font-bold text-orange-600" id="rate_val_${item.key}">Level ${item.curr} / 5</span>
+                ${statComps.map(item => {
+                    const roleReq = (typeof window.getCompetencyFrameworkBenchmark === 'function')
+                        ? window.getCompetencyFrameworkBenchmark(item.key, activeUser)
+                        : 3;
+                    
+                    // Clamp initial and stored rating strictly within [1, roleReq]
+                    const currentVal = Math.min(Math.max(1, assessmentResponses.selfRatings[item.key] || Math.min(2, roleReq)), roleReq);
+                    assessmentResponses.selfRatings[item.key] = currentVal;
+                    
+                    const isQualified = currentVal >= roleReq;
+
+                    return `
+                    <div class="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all hover:border-blue-300">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-navy-900 text-sm" style="color: #0B2545;">${item.label}</span>
+                                    <span class="px-2.5 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-md font-extrabold text-[10px] inline-flex items-center gap-1 shadow-2xs">
+                                        <i class="fa-solid fa-bullseye text-blue-600"></i> ${roleGrade} Target: Level ${roleReq} (${levelNames[roleReq] || 'Target'})
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-500">
+                                    ${levelDescs[roleReq] || 'Cadre benchmark standard for official statistical duties.'}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                                <span class="text-xs font-black px-3 py-1 rounded-lg ${isQualified ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}" id="rate_val_${item.key}">
+                                    Level ${currentVal} / ${roleReq} ${isQualified ? '✓ Meets Cadre Target' : `(Gap: -${roleReq - currentVal})`}
+                                </span>
+                            </div>
                         </div>
-                        <input type="range" min="1" max="5" value="${item.curr}" oninput="updateSelfRating('${item.key}', this.value)" class="w-full accent-orange-600 cursor-pointer">
-                        <div class="flex justify-between text-[10px] text-slate-400">
-                            <span>1. Awareness</span>
-                            <span>2. Foundation</span>
-                            <span>3. Working</span>
-                            <span>4. Advanced</span>
-                            <span>5. Expert</span>
+
+                        <div class="space-y-2 pt-1">
+                            <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
+                                <span>Current Rating: <strong class="text-blue-700" id="rate_label_${item.key}">Level ${currentVal} — ${levelNames[currentVal] || 'Level ' + currentVal}</strong></span>
+                                <span class="text-[10px] text-slate-400">Scale: Level 1 to ${roleReq} (${roleGrade} Cadre Max)</span>
+                            </div>
+
+                            <input type="range" 
+                                   min="1" 
+                                   max="${roleReq}" 
+                                   step="1"
+                                   value="${currentVal}" 
+                                   oninput="updateSelfRating('${item.key}', this.value, ${roleReq})" 
+                                   class="w-full accent-blue-600 cursor-pointer h-2.5 bg-slate-200 rounded-lg">
+
+                            <div class="flex justify-between text-[10px] font-semibold text-slate-500 pt-0.5 px-0.5">
+                                ${Array.from({ length: roleReq }, (_, i) => i + 1).map(lvl => `
+                                    <span class="${lvl === currentVal ? 'text-blue-700 font-extrabold' : (lvl === roleReq ? 'text-indigo-700 font-bold' : 'text-slate-400')}">
+                                        ${lvl}. ${levelNames[lvl] || 'Level ' + lvl} ${lvl === roleReq ? '★ Cadre Target' : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         </div>
         `;
@@ -479,32 +544,97 @@ function getAssessmentStepHTML(step, user, state) {
         </div>
         `;
     } else if (step === 4) {
+        const activeUser = user || (window.store && window.store.state && window.store.state.user) || {};
+        const roleGrade = (typeof window.getOfficerRoleGrade === 'function') 
+            ? window.getOfficerRoleGrade(activeUser) 
+            : (activeUser.roleGrade || activeUser.role_grade || 'R3');
+        const desigTitle = activeUser.designation || 'Assistant Director (Statistics)';
+        const levelNames = window.FRAMEWORK_LEVEL_NAMES || { 
+            1: "Awareness", 
+            2: "Working (Routine)", 
+            3: "Practitioner", 
+            4: "Advanced", 
+            5: "Expert / Strategic" 
+        };
+        const levelDescs = window.FRAMEWORK_LEVEL_SUBTITLES || {};
+
+        const techComps = [
+            { key: "Python", label: "Python Programming (Pandas, NumPy, Multiplier Aggregations)" },
+            { key: "AI/ML", label: "Machine Learning & AI (Imputation, NLP, Anomaly Detection)" },
+            { key: "Data Visualization", label: "Data Visualization (Power BI, Dashboards, Infographics)" }
+        ];
+
         return `
-        <div class="space-y-4">
-            <h2 class="text-lg font-bold text-navy-900" style="color: #0B2545;">Step 4 — Technical & Data Science Proficiency</h2>
-            <p class="text-xs text-slate-600">Rate your current capability with modern data engineering and programming tools.</p>
+        <div class="space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-navy-900" style="color: #0B2545;">Step 4 — Technical & Data Science Proficiency</h2>
+                    <p class="text-xs text-slate-600">Rate your current capability with programming and analytical tools against your cadre benchmark.</p>
+                </div>
+                <div class="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-800 flex items-center gap-2 self-start sm:self-auto shadow-xs">
+                    <i class="fa-solid fa-id-badge text-blue-600"></i>
+                    <span>Cadre: <strong>${roleGrade}</strong> (${desigTitle})</span>
+                </div>
+            </div>
 
             <div class="space-y-4 text-xs">
-                ${[
-                    { key: "Python", label: "Python Programming (Pandas, NumPy, Multiplier Aggregations)", curr: assessmentResponses.selfRatings["Python"] },
-                    { key: "AI/ML", label: "Machine Learning & AI (Imputation, NLP, Anomaly Detection)", curr: assessmentResponses.selfRatings["AI/ML"] },
-                    { key: "Data Visualization", label: "Data Visualization (Power BI, Seaborn, Interactive Dashboards)", curr: assessmentResponses.selfRatings["Data Visualization"] }
-                ].map(item => `
-                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-navy-900">${item.label}</span>
-                            <span class="text-xs font-bold text-orange-600" id="rate_val_${item.key}">Level ${item.curr} / 5</span>
+                ${techComps.map(item => {
+                    const roleReq = (typeof window.getCompetencyFrameworkBenchmark === 'function')
+                        ? window.getCompetencyFrameworkBenchmark(item.key, activeUser)
+                        : 3;
+                    
+                    // Clamp initial and stored rating strictly within [1, roleReq]
+                    const currentVal = Math.min(Math.max(1, assessmentResponses.selfRatings[item.key] || Math.min(2, roleReq)), roleReq);
+                    assessmentResponses.selfRatings[item.key] = currentVal;
+                    
+                    const isQualified = currentVal >= roleReq;
+
+                    return `
+                    <div class="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all hover:border-blue-300">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-navy-900 text-sm" style="color: #0B2545;">${item.label}</span>
+                                    <span class="px-2.5 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-md font-extrabold text-[10px] inline-flex items-center gap-1 shadow-2xs">
+                                        <i class="fa-solid fa-bullseye text-blue-600"></i> ${roleGrade} Target: Level ${roleReq} (${levelNames[roleReq] || 'Target'})
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-500">
+                                    ${levelDescs[roleReq] || 'Cadre benchmark standard for official statistical duties.'}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                                <span class="text-xs font-black px-3 py-1 rounded-lg ${isQualified ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}" id="rate_val_${item.key}">
+                                    Level ${currentVal} / ${roleReq} ${isQualified ? '✓ Meets Cadre Target' : `(Gap: -${roleReq - currentVal})`}
+                                </span>
+                            </div>
                         </div>
-                        <input type="range" min="1" max="5" value="${item.curr}" oninput="updateSelfRating('${item.key}', this.value)" class="w-full accent-orange-600 cursor-pointer">
-                        <div class="flex justify-between text-[10px] text-slate-400">
-                            <span>1. Awareness</span>
-                            <span>2. Foundation</span>
-                            <span>3. Working</span>
-                            <span>4. Advanced</span>
-                            <span>5. Expert</span>
+
+                        <div class="space-y-2 pt-1">
+                            <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
+                                <span>Current Rating: <strong class="text-blue-700" id="rate_label_${item.key}">Level ${currentVal} — ${levelNames[currentVal] || 'Level ' + currentVal}</strong></span>
+                                <span class="text-[10px] text-slate-400">Scale: Level 1 to ${roleReq} (${roleGrade} Cadre Max)</span>
+                            </div>
+
+                            <input type="range" 
+                                   min="1" 
+                                   max="${roleReq}" 
+                                   step="1"
+                                   value="${currentVal}" 
+                                   oninput="updateSelfRating('${item.key}', this.value, ${roleReq})" 
+                                   class="w-full accent-blue-600 cursor-pointer h-2.5 bg-slate-200 rounded-lg">
+
+                            <div class="flex justify-between text-[10px] font-semibold text-slate-500 pt-0.5 px-0.5">
+                                ${Array.from({ length: roleReq }, (_, i) => i + 1).map(lvl => `
+                                    <span class="${lvl === currentVal ? 'text-blue-700 font-extrabold' : (lvl === roleReq ? 'text-indigo-700 font-bold' : 'text-slate-400')}">
+                                        ${lvl}. ${levelNames[lvl] || 'Level ' + lvl} ${lvl === roleReq ? '★ Cadre Target' : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         </div>
         `;
@@ -532,6 +662,36 @@ function getAssessmentStepHTML(step, user, state) {
         </div>
         `;
     } else {
+        const activeUser = user || (window.store && window.store.state && window.store.state.user) || {};
+        const roleGrade = (typeof window.getOfficerRoleGrade === 'function') 
+            ? window.getOfficerRoleGrade(activeUser) 
+            : (activeUser.roleGrade || activeUser.role_grade || 'R3');
+
+        // Dynamically compute primary gap against role requirements
+        let primaryGapName = "AI / ML";
+        let primaryGapTarget = 2;
+        let primaryGapCurrent = 1;
+        let maxGap = 0;
+
+        const evaluatedComps = ["Survey Design", "Sampling", "National Accounts", "Python", "AI/ML", "Data Visualization"];
+        evaluatedComps.forEach(k => {
+            const req = (typeof window.getCompetencyFrameworkBenchmark === 'function') 
+                ? window.getCompetencyFrameworkBenchmark(k, activeUser) 
+                : 3;
+            const curr = assessmentResponses.selfRatings[k] || 1;
+            const gap = Math.max(0, req - curr);
+            if (gap > maxGap) {
+                maxGap = gap;
+                primaryGapName = k;
+                primaryGapTarget = req;
+                primaryGapCurrent = curr;
+            }
+        });
+
+        const gapDisplay = maxGap > 0 
+            ? `${primaryGapName} (L${primaryGapCurrent}→L${primaryGapTarget})` 
+            : `Cadre Benchmark Met (L${primaryGapTarget})`;
+
         return `
         <div class="space-y-6 text-center">
             <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-md">
@@ -540,7 +700,7 @@ function getAssessmentStepHTML(step, user, state) {
             <div>
                 <h2 class="text-xl font-black text-navy-900" style="color: #0B2545;">AI Digital Competency Assessment Complete!</h2>
                 <p class="text-xs text-slate-600 max-w-md mx-auto mt-1">
-                    Your personalized competency radar has been updated with calibrated benchmark gaps and aligned with iGOT Karmayogi learning pathways.
+                    Your personalized competency radar has been calibrated against your <strong>${roleGrade} Cadre Benchmarks</strong> and aligned with iGOT Karmayogi learning pathways.
                 </p>
             </div>
 
@@ -551,8 +711,8 @@ function getAssessmentStepHTML(step, user, state) {
                     <span class="text-[10px] text-emerald-600 font-bold block mt-0.5">↑ +6% Gain</span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span class="text-slate-500 block text-[10px]">Primary Gap</span>
-                    <span class="text-base font-black text-orange-600">AI / ML (L1→L3)</span>
+                    <span class="text-slate-500 block text-[10px]">Primary Cadre Gap</span>
+                    <span class="text-sm font-black text-orange-600">${gapDisplay}</span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-500 block text-[10px]">Recommended</span>
@@ -685,10 +845,29 @@ window.toggleToolBadge = function(tool) {
     }
 };
 
-window.updateSelfRating = function(key, val) {
-    assessmentResponses.selfRatings[key] = parseInt(val);
+window.updateSelfRating = function(key, val, maxReq) {
+    const max = maxReq ? parseInt(maxReq, 10) : 3;
+    const num = Math.min(Math.max(1, parseInt(val, 10)), max);
+    assessmentResponses.selfRatings[key] = num;
+
     const label = document.getElementById(`rate_val_${key}`);
-    if (label) label.textContent = `Level ${val} / 5`;
+    const nameLabel = document.getElementById(`rate_label_${key}`);
+    
+    const isQualified = num >= max;
+    if (label) {
+        label.textContent = `Level ${num} / ${max} ${isQualified ? '✓ Meets Cadre Target' : `(Gap: -${max - num})`}`;
+        label.className = `text-xs font-black px-3 py-1 rounded-lg ${isQualified ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}`;
+    }
+    if (nameLabel) {
+        const levelNames = window.FRAMEWORK_LEVEL_NAMES || { 
+            1: "Awareness", 
+            2: "Working (Routine)", 
+            3: "Practitioner", 
+            4: "Advanced", 
+            5: "Expert / Strategic" 
+        };
+        nameLabel.textContent = `Level ${num} — ${levelNames[num] || 'Level ' + num}`;
+    }
 };
 
 window.clearAssessmentFieldError = function(id) {
