@@ -174,36 +174,26 @@ function getAssessmentStepHTML(step, user, state) {
                 </div>
             </div>
 
-            <!-- 1. Official Cadre & Registration Record (LOCKED with OPTIONAL UNLOCK) -->
-            <div class="p-4 ${window.isCadreUnlocked ? 'bg-amber-50/40 border-amber-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
-                <div class="flex items-center justify-between border-b ${window.isCadreUnlocked ? 'border-amber-200' : 'border-slate-200'} pb-2">
+            <!-- 1. Official Cadre & Registration Record -->
+            <div class="p-4 ${window.isCadreUnlocked ? 'bg-blue-50/40 border-blue-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
+                <div class="flex items-center justify-between border-b ${window.isCadreUnlocked ? 'border-blue-200' : 'border-slate-200'} pb-2">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-xs font-black uppercase tracking-wider ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} flex items-center gap-2">
-                            <i class="fa-solid ${window.isCadreUnlocked ? 'fa-lock-open text-amber-600' : 'fa-lock text-emerald-600'}"></i> 1. Official Service Record 
+                        <h3 class="text-xs font-black uppercase tracking-wider ${window.isCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} flex items-center gap-2">
+                            <i class="fa-solid fa-id-card text-blue-600"></i> 1. Official Service Profile
                         </h3>
-                        <span class="${window.isCadreUnlocked ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-200'} text-[10px] font-extrabold px-2 py-0.5 rounded-full border">
-                            ${window.isCadreUnlocked ? '🔓 Correction Mode' : '🔒 Locked & Verified'}
-                        </span>
                     </div>
-                    <button type="button" onclick="toggleUnlockCadre()" class="text-[11px] font-bold ${window.isCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'} px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                    <button type="button" onclick="toggleUnlockCadre()" class="text-[11px] font-bold ${window.isCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-300'} px-3 py-1.5 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid ${window.isCadreUnlocked ? 'fa-check' : 'fa-user-pen'}"></i>
-                        ${window.isCadreUnlocked ? 'Done Correcting' : 'Correct / Edit Cadre Info'}
+                        ${window.isCadreUnlocked ? 'Done Editing' : 'Edit Profile'}
                     </button>
                 </div>
 
-                ${window.isCadreUnlocked ? `
-                    <div class="p-2.5 bg-amber-100/70 border border-amber-200 rounded-xl text-amber-900 text-[11px] flex items-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-600 flex-shrink-0"></i>
-                        <span><strong>Correction Mode Active:</strong> Select your Ministry, Department, and Designation from the dropdown lists. Updates will be saved to your permanent official database profile.</span>
-                    </div>
-                ` : ''}
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                        <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Official Name ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
+                        <label class="font-bold ${window.isCadreUnlocked ? 'text-blue-900' : 'text-slate-600'} block mb-1">Official Name ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_name" value="${user.name || ''}" oninput="clearAssessmentFieldError('prof_name')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
-                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
+                            <input type="text" id="prof_name" value="${user.name || ''}" oninput="clearAssessmentFieldError('prof_name')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
+                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-blue-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
                         </div>
                         <div id="err_prof_name" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Official name is required.</div>
                     </div>
@@ -514,11 +504,46 @@ function getAssessmentStepHTML(step, user, state) {
 window.isCadreUnlocked = false;
 
 window.toggleUnlockCadre = function() {
+    // Preserve any existing form values entered so far
+    const locVal = document.getElementById('prof_location')?.value;
+    const assignVal = document.getElementById('prof_assignment')?.value;
+    const degVal = document.getElementById('prof_degree')?.value;
+    const specVal = document.getElementById('prof_spec')?.value;
+    const toolsVal = document.getElementById('prof_tools')?.value;
+    const expVal = document.getElementById('prof_exp')?.value;
+    const prevRolesVal = document.getElementById('prof_prevRoles')?.value;
+    const domainsVal = document.getElementById('prof_domains')?.value;
+    const projVal = document.getElementById('prof_projects')?.value;
+    const trainVal = document.getElementById('prof_training')?.value;
+
+    const nameVal = document.getElementById('prof_name')?.value;
+    const minVal = document.getElementById('prof_ministry')?.value;
+    const deptVal = document.getElementById('prof_dept')?.value;
+    const desigVal = document.getElementById('prof_desig')?.value;
+
     window.isCadreUnlocked = !window.isCadreUnlocked;
-    const container = document.getElementById('assessmentContent');
-    const user = (window.store && window.store.state && window.store.state.user) || {};
+
+    const baseUser = (window.store && window.store.state && window.store.state.user) || {};
+    const mergedUser = Object.assign({}, baseUser, {
+        name: (nameVal !== undefined && nameVal !== '') ? nameVal : baseUser.name,
+        ministry: (minVal !== undefined && minVal !== '') ? minVal : baseUser.ministry,
+        department: (deptVal !== undefined && deptVal !== '') ? deptVal : baseUser.department,
+        designation: (desigVal !== undefined && desigVal !== '') ? desigVal : baseUser.designation,
+        location: locVal !== undefined ? locVal : baseUser.location,
+        currentAssignment: assignVal !== undefined ? assignVal : baseUser.currentAssignment,
+        degree: degVal !== undefined ? degVal : baseUser.degree,
+        specialization: specVal !== undefined ? specVal : baseUser.specialization,
+        technicalQualifications: toolsVal !== undefined ? toolsVal : baseUser.technicalQualifications,
+        experienceYears: expVal !== undefined ? expVal : baseUser.experienceYears,
+        previousRoles: prevRolesVal !== undefined ? prevRolesVal : baseUser.previousRoles,
+        statisticalDomains: domainsVal !== undefined ? domainsVal : baseUser.statisticalDomains,
+        projectsHandled: projVal !== undefined ? projVal : baseUser.projectsHandled,
+        trainingProgrammes: trainVal !== undefined ? trainVal : baseUser.trainingProgrammes
+    });
+
+    const container = document.getElementById('assessmentStepContainer');
     if (container) {
-        container.innerHTML = getAssessmentStepHTML(1, user, window.store ? window.store.state : {});
+        container.innerHTML = getAssessmentStepHTML(1, mergedUser, window.store ? window.store.state : {});
     }
 };
 

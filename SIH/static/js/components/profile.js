@@ -202,8 +202,9 @@ function renderUserProfile(state) {
     `;
 }
 
-window.openEditProfileModal = function() {
-    const user = (window.store && window.store.state && window.store.state.user) || {};
+window.openEditProfileModal = function(overrideUser) {
+    const storeUser = (window.store && window.store.state && window.store.state.user) || {};
+    const user = overrideUser || storeUser;
     const desigVal = (typeof user.designation === 'object' && user.designation)
         ? (user.designation.title || user.designation.name || 'Senior Statistical Officer (SSO)')
         : (String(user.designation || user.role || '').trim() === '[object Object]' || !(user.designation || user.role) ? 'Senior Statistical Officer (SSO)' : String(user.designation || user.role));
@@ -287,36 +288,29 @@ window.openEditProfileModal = function() {
 
             <div class="space-y-4 max-h-[65vh] overflow-y-auto pr-2 text-xs">
                 <!-- Cadre Section with Unlock Toggle -->
-                <div class="p-3.5 ${window.isModalCadreUnlocked ? 'bg-amber-50/50 border-amber-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
-                    <div class="flex items-center justify-between border-b ${window.isModalCadreUnlocked ? 'border-amber-200' : 'border-slate-200'} pb-2">
+                <div class="p-3.5 ${window.isModalCadreUnlocked ? 'bg-blue-50/50 border-blue-300' : 'bg-slate-50/80 border-slate-200'} rounded-2xl border space-y-3 transition-all">
+                    <div class="flex items-center justify-between border-b ${window.isModalCadreUnlocked ? 'border-blue-200' : 'border-slate-200'} pb-2">
                         <div>
-                            <h3 class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-800'} text-xs flex items-center gap-2">
-                                <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-lock-open text-amber-600' : 'fa-lock text-emerald-600'}"></i> Official Cadre Information
+                            <h3 class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-800'} text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-id-card text-blue-600"></i> Official Cadre Information
                             </h3>
-                            <p class="text-[10px] text-slate-500">Select official Ministry, Department, and Designation from standard lists</p>
+                            <p class="text-[10px] text-slate-500">Ministry, Department, and Designation</p>
                         </div>
-                        <button type="button" onclick="toggleModalCadreUnlock()" class="text-[11px] font-bold ${window.isModalCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'} px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
+                        <button type="button" onclick="toggleModalCadreUnlock()" class="text-[11px] font-bold ${window.isModalCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-300'} px-3 py-1.5 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
                             <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-check' : 'fa-user-pen'}"></i>
-                            ${window.isModalCadreUnlocked ? 'Lock Cadre' : 'Correct / Edit Cadre Details'}
+                            ${window.isModalCadreUnlocked ? 'Done Editing' : 'Edit Profile'}
                         </button>
                     </div>
 
-                    ${window.isModalCadreUnlocked ? `
-                        <div class="p-2 bg-amber-100/70 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                            <span>Correction mode active: Select your Ministry, Department, and Designation from the dropdown lists.</span>
-                        </div>
-                    ` : ''}
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Official Name</label>
-                            <input type="text" id="modal_prof_name" value="${user.name || ''}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Official Name</label>
+                            <input type="text" id="modal_prof_name" value="${user.name || ''}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Dr. Rajesh Sharma">
                         </div>
                         <div>
-                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Ministry / Administration</label>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Ministry / Administration</label>
                             ${window.isModalCadreUnlocked ? `
-                                <select id="modal_prof_ministry" onchange="onModalMinistryChange()" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                <select id="modal_prof_ministry" onchange="onModalMinistryChange()" class="w-full p-2.5 bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 border rounded-lg shadow-sm">
                                     ${allMinistries.map(m => `<option value="${m}" ${m.toLowerCase() === currentMinistry.toLowerCase() || (m.includes('Statistics') && currentMinistry.includes('Statistics')) ? 'selected' : ''}>${m}</option>`).join('')}
                                 </select>
                             ` : `
@@ -324,9 +318,9 @@ window.openEditProfileModal = function() {
                             `}
                         </div>
                         <div>
-                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Department / Division</label>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Department / Division</label>
                             ${window.isModalCadreUnlocked ? `
-                                <select id="modal_prof_dept" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                <select id="modal_prof_dept" class="w-full p-2.5 bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 border rounded-lg shadow-sm">
                                     ${allDepts.map(d => `<option value="${d}" ${d.toLowerCase() === String(user.department || '').toLowerCase() ? 'selected' : ''}>${d}</option>`).join('')}
                                 </select>
                             ` : `
@@ -334,9 +328,9 @@ window.openEditProfileModal = function() {
                             `}
                         </div>
                         <div>
-                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Designation / Role</label>
+                            <label class="font-bold ${window.isModalCadreUnlocked ? 'text-blue-900' : 'text-slate-700'} block mb-1">Designation / Role</label>
                             ${window.isModalCadreUnlocked ? `
-                                <select id="modal_prof_desig" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                <select id="modal_prof_desig" class="w-full p-2.5 bg-white border-blue-400 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 border rounded-lg shadow-sm">
                                     ${allDesignations.map(des => `<option value="${des}" ${des.toLowerCase().includes(desigVal.toLowerCase()) || desigVal.toLowerCase().includes(des.toLowerCase().split('—')[0].trim()) ? 'selected' : ''}>${des}</option>`).join('')}
                                 </select>
                             ` : `
@@ -407,8 +401,43 @@ window.openEditProfileModal = function() {
 window.isModalCadreUnlocked = false;
 
 window.toggleModalCadreUnlock = function() {
+    const locVal = document.getElementById('modal_prof_location')?.value;
+    const assignVal = document.getElementById('modal_prof_assignment')?.value;
+    const degVal = document.getElementById('modal_prof_degree')?.value;
+    const specVal = document.getElementById('modal_prof_spec')?.value;
+    const toolsVal = document.getElementById('modal_prof_tools')?.value;
+    const expVal = document.getElementById('modal_prof_exp')?.value;
+    const prevRolesVal = document.getElementById('modal_prof_prevRoles')?.value;
+    const domainsVal = document.getElementById('modal_prof_domains')?.value;
+    const projVal = document.getElementById('modal_prof_projects')?.value;
+    const trainVal = document.getElementById('modal_prof_training')?.value;
+
+    const nameVal = document.getElementById('modal_prof_name')?.value;
+    const minVal = document.getElementById('modal_prof_ministry')?.value;
+    const deptVal = document.getElementById('modal_prof_dept')?.value;
+    const desigVal = document.getElementById('modal_prof_desig')?.value;
+
     window.isModalCadreUnlocked = !window.isModalCadreUnlocked;
-    window.openEditProfileModal();
+
+    const baseUser = (window.store && window.store.state && window.store.state.user) || {};
+    const mergedUser = Object.assign({}, baseUser, {
+        name: (nameVal !== undefined && nameVal !== '') ? nameVal : baseUser.name,
+        ministry: (minVal !== undefined && minVal !== '') ? minVal : baseUser.ministry,
+        department: (deptVal !== undefined && deptVal !== '') ? deptVal : baseUser.department,
+        designation: (desigVal !== undefined && desigVal !== '') ? desigVal : baseUser.designation,
+        location: locVal !== undefined ? locVal : baseUser.location,
+        currentAssignment: assignVal !== undefined ? assignVal : baseUser.currentAssignment,
+        degree: degVal !== undefined ? degVal : baseUser.degree,
+        specialization: specVal !== undefined ? specVal : baseUser.specialization,
+        technicalQualifications: toolsVal !== undefined ? toolsVal : baseUser.technicalQualifications,
+        experienceYears: expVal !== undefined ? expVal : baseUser.experienceYears,
+        previousRoles: prevRolesVal !== undefined ? prevRolesVal : baseUser.previousRoles,
+        statisticalDomains: domainsVal !== undefined ? domainsVal : baseUser.statisticalDomains,
+        projectsHandled: projVal !== undefined ? projVal : baseUser.projectsHandled,
+        trainingProgrammes: trainVal !== undefined ? trainVal : baseUser.trainingProgrammes
+    });
+
+    window.openEditProfileModal(mergedUser);
 };
 
 window.closeEditProfileModal = function() {
