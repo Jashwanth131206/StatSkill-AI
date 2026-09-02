@@ -108,6 +108,55 @@ function getAssessmentStepHTML(step, user, state) {
         const empId = user.employeeId || user.employee_id || 'ISS/2026/84920';
         const contactInfo = user.mobile ? `+91 ${user.mobile} • ${user.email || ''}` : (user.email || 'officer@gov.nic.in');
 
+        const currentMinistry = user.ministry || "Ministry of Statistics & Programme Implementation (MoSPI)";
+        const allMinistries = typeof window.getAllMinistriesList === 'function' ? window.getAllMinistriesList() : [
+            "Ministry of Statistics & Programme Implementation (MoSPI)",
+            "Ministry of Finance",
+            "Ministry of Agriculture & Farmers Welfare",
+            "Ministry of Commerce & Industry",
+            "Ministry of Health & Family Welfare",
+            "Ministry of Jal Shakti",
+            "Ministry of Labour & Employment",
+            "Ministry of Rural Development",
+            "Ministry of Education",
+            "Ministry of Electronics & Information Technology (MeitY)",
+            "NITI Aayog (National Institution for Transforming India)"
+        ];
+        if (!allMinistries.includes(currentMinistry) && currentMinistry) {
+            allMinistries.unshift(currentMinistry);
+        }
+
+        const allDepts = typeof window.getDepartmentsForMinistry === 'function' ? window.getDepartmentsForMinistry(currentMinistry) : [
+            "National Statistical Office (NSO - SDRD)",
+            "National Statistical Office (NSO - FOD)",
+            "National Statistical Office (NSO - NAD)",
+            "National Statistical Office (NSO - ESD)",
+            "National Statistical Office (NSO - PSD)",
+            "National Statistical Office (NSO - SSD)",
+            "National Statistical Systems Training Academy (NSSTA)"
+        ];
+        if (user.department && !allDepts.includes(user.department)) {
+            allDepts.unshift(user.department);
+        }
+
+        const allDesignations = typeof window.getAllDesignationsList === 'function' ? window.getAllDesignationsList() : [
+            "Senior Statistical Officer (SSO) — SSS Cadre",
+            "Junior Statistical Officer (JSO) — SSS Cadre",
+            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
+            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
+            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
+            "Director (Survey Design / Official Statistics) — ISS Cadre",
+            "Deputy Director General (DDG - Statistical Cadre)",
+            "Additional Director General (ADG - Official Statistics)",
+            "Director General (NSO / Central Statistical System)",
+            "District Statistical Officer (DSO) — State DES",
+            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
+            "Statistical Investigator / Survey Field Officer (FOD)"
+        ];
+        if (desig && !allDesignations.some(d => d.includes(desig) || desig.includes(d.split('—')[0].trim()))) {
+            allDesignations.unshift(desig);
+        }
+
         return `
         <div class="space-y-6">
             <!-- Dynamic Validation Alert Banner -->
@@ -145,7 +194,7 @@ function getAssessmentStepHTML(step, user, state) {
                 ${window.isCadreUnlocked ? `
                     <div class="p-2.5 bg-amber-100/70 border border-amber-200 rounded-xl text-amber-900 text-[11px] flex items-center gap-2">
                         <i class="fa-solid fa-triangle-exclamation text-amber-600 flex-shrink-0"></i>
-                        <span><strong>Correction Mode Active:</strong> You can correct any mistakes made in your name, ministry, department, or designation. Updates will be saved to your permanent official database profile.</span>
+                        <span><strong>Correction Mode Active:</strong> Select your Ministry, Department, and Designation from the dropdown lists. Updates will be saved to your permanent official database profile.</span>
                     </div>
                 ` : ''}
 
@@ -168,24 +217,42 @@ function getAssessmentStepHTML(step, user, state) {
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Ministry / Administration ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_ministry" value="${user.ministry || ''}" oninput="clearAssessmentFieldError('prof_ministry')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Ministry of Statistics & Programme Implementation">
-                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
+                            ${window.isCadreUnlocked ? `
+                                <select id="prof_ministry" onchange="onAssessmentMinistryChange()" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allMinistries.map(m => `<option value="${m}" ${m.toLowerCase() === currentMinistry.toLowerCase() || (m.includes('Statistics') && currentMinistry.includes('Statistics')) ? 'selected' : ''}>${m}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="prof_ministry" value="${currentMinistry}" disabled class="w-full p-2.5 bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none border rounded-lg">
+                                <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            `}
                         </div>
                         <div id="err_prof_ministry" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Ministry is required.</div>
                     </div>
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Department / Division ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_dept" value="${user.department || ''}" oninput="clearAssessmentFieldError('prof_dept')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. National Statistical Office (NSO - SDRD)">
-                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
+                            ${window.isCadreUnlocked ? `
+                                <select id="prof_dept" onchange="clearAssessmentFieldError('prof_dept')" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allDepts.map(d => `<option value="${d}" ${d.toLowerCase() === String(user.department || '').toLowerCase() ? 'selected' : ''}>${d}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" disabled class="w-full p-2.5 bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none border rounded-lg">
+                                <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            `}
                         </div>
                         <div id="err_prof_dept" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Department is required.</div>
                     </div>
                     <div>
                         <label class="font-bold ${window.isCadreUnlocked ? 'text-amber-900' : 'text-slate-600'} block mb-1">Designation / Role ${window.isCadreUnlocked ? '<span class="text-red-500">*</span>' : ''}</label>
                         <div class="relative">
-                            <input type="text" id="prof_desig" value="${desig}" oninput="clearAssessmentFieldError('prof_desig')" ${window.isCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Senior Statistical Officer (SSO)">
-                            <span class="absolute right-3 top-2.5 ${window.isCadreUnlocked ? 'text-amber-500' : 'text-slate-400'}"><i class="fa-solid ${window.isCadreUnlocked ? 'fa-pen text-xs' : 'fa-lock text-xs'}"></i></span>
+                            ${window.isCadreUnlocked ? `
+                                <select id="prof_desig" onchange="clearAssessmentFieldError('prof_desig')" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allDesignations.map(des => `<option value="${des}" ${des.toLowerCase().includes(desig.toLowerCase()) || desig.toLowerCase().includes(des.toLowerCase().split('—')[0].trim()) ? 'selected' : ''}>${des}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="prof_desig" value="${desig}" disabled class="w-full p-2.5 bg-slate-100/90 border-slate-200 text-slate-800 font-semibold cursor-not-allowed select-none border rounded-lg">
+                                <span class="absolute right-3 top-2.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                            `}
                         </div>
                         <div id="err_prof_desig" class="hidden text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Designation is required.</div>
                     </div>
@@ -452,6 +519,28 @@ window.toggleUnlockCadre = function() {
     const user = (window.store && window.store.state && window.store.state.user) || {};
     if (container) {
         container.innerHTML = getAssessmentStepHTML(1, user, window.store ? window.store.state : {});
+    }
+};
+
+window.onAssessmentMinistryChange = function() {
+    const minSelect = document.getElementById('prof_ministry');
+    const deptSelect = document.getElementById('prof_dept');
+    if (!minSelect || !deptSelect) return;
+    const selectedMin = minSelect.value;
+    const depts = typeof window.getDepartmentsForMinistry === 'function' 
+        ? window.getDepartmentsForMinistry(selectedMin) 
+        : [];
+    if (depts && depts.length > 0) {
+        deptSelect.innerHTML = depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    } else {
+        deptSelect.innerHTML = `
+            <option value="General Administration & Statistics Division">General Administration & Statistics Division</option>
+            <option value="Planning & Monitoring Wing">Planning & Monitoring Wing</option>
+            <option value="Data Analytics & Survey Unit">Data Analytics & Survey Unit</option>
+        `;
+    }
+    if (typeof window.clearAssessmentFieldError === 'function') {
+        window.clearAssessmentFieldError('prof_ministry');
     }
 };
 

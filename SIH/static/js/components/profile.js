@@ -218,6 +218,55 @@ window.openEditProfileModal = function() {
     const location = user.location || "";
     const projects = user.projectsHandled || user.projects_handled || "";
 
+    const currentMinistry = user.ministry || "Ministry of Statistics & Programme Implementation (MoSPI)";
+    const allMinistries = typeof window.getAllMinistriesList === 'function' ? window.getAllMinistriesList() : [
+        "Ministry of Statistics & Programme Implementation (MoSPI)",
+        "Ministry of Finance",
+        "Ministry of Agriculture & Farmers Welfare",
+        "Ministry of Commerce & Industry",
+        "Ministry of Health & Family Welfare",
+        "Ministry of Jal Shakti",
+        "Ministry of Labour & Employment",
+        "Ministry of Rural Development",
+        "Ministry of Education",
+        "Ministry of Electronics & Information Technology (MeitY)",
+        "NITI Aayog (National Institution for Transforming India)"
+    ];
+    if (!allMinistries.includes(currentMinistry) && currentMinistry) {
+        allMinistries.unshift(currentMinistry);
+    }
+
+    const allDepts = typeof window.getDepartmentsForMinistry === 'function' ? window.getDepartmentsForMinistry(currentMinistry) : [
+        "National Statistical Office (NSO - SDRD)",
+        "National Statistical Office (NSO - FOD)",
+        "National Statistical Office (NSO - NAD)",
+        "National Statistical Office (NSO - ESD)",
+        "National Statistical Office (NSO - PSD)",
+        "National Statistical Office (NSO - SSD)",
+        "National Statistical Systems Training Academy (NSSTA)"
+    ];
+    if (user.department && !allDepts.includes(user.department)) {
+        allDepts.unshift(user.department);
+    }
+
+    const allDesignations = typeof window.getAllDesignationsList === 'function' ? window.getAllDesignationsList() : [
+        "Senior Statistical Officer (SSO) — SSS Cadre",
+        "Junior Statistical Officer (JSO) — SSS Cadre",
+        "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
+        "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
+        "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
+        "Director (Survey Design / Official Statistics) — ISS Cadre",
+        "Deputy Director General (DDG - Statistical Cadre)",
+        "Additional Director General (ADG - Official Statistics)",
+        "Director General (NSO / Central Statistical System)",
+        "District Statistical Officer (DSO) — State DES",
+        "Assistant Statistical Officer (ASO) — State Statistical Cadre",
+        "Statistical Investigator / Survey Field Officer (FOD)"
+    ];
+    if (desigVal && !allDesignations.some(d => d.includes(desigVal) || desigVal.includes(d.split('—')[0].trim()))) {
+        allDesignations.unshift(desigVal);
+    }
+
     const modalHTML = `
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 my-8">
@@ -244,7 +293,7 @@ window.openEditProfileModal = function() {
                             <h3 class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-800'} text-xs flex items-center gap-2">
                                 <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-lock-open text-amber-600' : 'fa-lock text-emerald-600'}"></i> Official Cadre Information
                             </h3>
-                            <p class="text-[10px] text-slate-500">Ministry, Department, Designation, and Name</p>
+                            <p class="text-[10px] text-slate-500">Select official Ministry, Department, and Designation from standard lists</p>
                         </div>
                         <button type="button" onclick="toggleModalCadreUnlock()" class="text-[11px] font-bold ${window.isModalCadreUnlocked ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'} px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
                             <i class="fa-solid ${window.isModalCadreUnlocked ? 'fa-check' : 'fa-user-pen'}"></i>
@@ -255,7 +304,7 @@ window.openEditProfileModal = function() {
                     ${window.isModalCadreUnlocked ? `
                         <div class="p-2 bg-amber-100/70 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-2">
                             <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                            <span>Correction mode active: You can correct any mistakes in your name, ministry, department, or designation.</span>
+                            <span>Correction mode active: Select your Ministry, Department, and Designation from the dropdown lists.</span>
                         </div>
                     ` : ''}
 
@@ -266,15 +315,33 @@ window.openEditProfileModal = function() {
                         </div>
                         <div>
                             <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Ministry / Administration</label>
-                            <input type="text" id="modal_prof_ministry" value="${user.ministry || ''}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Ministry of Statistics & Programme Implementation">
+                            ${window.isModalCadreUnlocked ? `
+                                <select id="modal_prof_ministry" onchange="onModalMinistryChange()" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allMinistries.map(m => `<option value="${m}" ${m.toLowerCase() === currentMinistry.toLowerCase() || (m.includes('Statistics') && currentMinistry.includes('Statistics')) ? 'selected' : ''}>${m}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="modal_prof_ministry" value="${currentMinistry}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none rounded-lg">
+                            `}
                         </div>
                         <div>
                             <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Department / Division</label>
-                            <input type="text" id="modal_prof_dept" value="${user.department || ''}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. National Statistical Office (NSO - SDRD)">
+                            ${window.isModalCadreUnlocked ? `
+                                <select id="modal_prof_dept" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allDepts.map(d => `<option value="${d}" ${d.toLowerCase() === String(user.department || '').toLowerCase() ? 'selected' : ''}>${d}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="modal_prof_dept" value="${user.department || 'National Statistical Office (NSO - SDRD)'}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none rounded-lg">
+                            `}
                         </div>
                         <div>
                             <label class="font-bold ${window.isModalCadreUnlocked ? 'text-amber-900' : 'text-slate-700'} block mb-1">Designation / Role</label>
-                            <input type="text" id="modal_prof_desig" value="${desigVal}" ${window.isModalCadreUnlocked ? '' : 'disabled'} class="w-full p-2.5 ${window.isModalCadreUnlocked ? 'bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500' : 'bg-slate-100/90 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none'} border rounded-lg" placeholder="e.g. Senior Statistical Officer (SSO)">
+                            ${window.isModalCadreUnlocked ? `
+                                <select id="modal_prof_desig" class="w-full p-2.5 bg-white border-amber-300 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 border rounded-lg shadow-sm">
+                                    ${allDesignations.map(des => `<option value="${des}" ${des.toLowerCase().includes(desigVal.toLowerCase()) || desigVal.toLowerCase().includes(des.toLowerCase().split('—')[0].trim()) ? 'selected' : ''}>${des}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" id="modal_prof_desig" value="${desigVal}" disabled class="w-full p-2.5 bg-slate-100/90 border border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none rounded-lg">
+                            `}
                         </div>
                     </div>
                 </div>
@@ -348,6 +415,25 @@ window.closeEditProfileModal = function() {
     window.isModalCadreUnlocked = false;
     const container = document.getElementById('editProfileModalContainer');
     if (container) container.innerHTML = '';
+};
+
+window.onModalMinistryChange = function() {
+    const minSelect = document.getElementById('modal_prof_ministry');
+    const deptSelect = document.getElementById('modal_prof_dept');
+    if (!minSelect || !deptSelect) return;
+    const selectedMin = minSelect.value;
+    const depts = typeof window.getDepartmentsForMinistry === 'function' 
+        ? window.getDepartmentsForMinistry(selectedMin) 
+        : [];
+    if (depts && depts.length > 0) {
+        deptSelect.innerHTML = depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    } else {
+        deptSelect.innerHTML = `
+            <option value="General Administration & Statistics Division">General Administration & Statistics Division</option>
+            <option value="Planning & Monitoring Wing">Planning & Monitoring Wing</option>
+            <option value="Data Analytics & Survey Unit">Data Analytics & Survey Unit</option>
+        `;
+    }
 };
 
 window.saveModalProfile = function() {

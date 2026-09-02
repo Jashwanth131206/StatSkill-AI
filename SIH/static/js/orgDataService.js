@@ -414,4 +414,85 @@
     };
 
     window.OrgDataService = OrgDataService;
+
+    window.getAllMinistriesList = function() {
+        let list = [];
+        if (window.OrgDataService) {
+            const mins = window.OrgDataService.getMinistries();
+            if (mins) list.push(...mins.map(m => m.name));
+            const states = window.OrgDataService.getStatesAndUTs();
+            if (states) list.push(...states.map(s => s.name));
+        }
+        if (list.length === 0) {
+            list = [
+                "Ministry of Statistics & Programme Implementation (MoSPI)",
+                "Ministry of Finance",
+                "Ministry of Agriculture & Farmers Welfare",
+                "Ministry of Commerce & Industry",
+                "Ministry of Health & Family Welfare",
+                "Ministry of Jal Shakti",
+                "Ministry of Labour & Employment",
+                "Ministry of Rural Development",
+                "Ministry of Education",
+                "Ministry of Electronics & Information Technology (MeitY)",
+                "NITI Aayog (National Institution for Transforming India)"
+            ];
+        }
+        return Array.from(new Set(list));
+    };
+
+    window.getDepartmentsForMinistry = function(ministryName) {
+        if (!ministryName || ministryName.startsWith('--')) return [];
+        let list = [];
+        if (window.OrgDataService) {
+            let depts = window.OrgDataService.getDepartments("central", ministryName);
+            if (!depts || depts.length === 0) {
+                depts = window.OrgDataService.getDepartments("state", ministryName);
+            }
+            if (depts && depts.length > 0) {
+                depts.forEach(d => {
+                    list.push(d.name);
+                    const orgs = window.OrgDataService.getOrganisations("central", ministryName, d.id || d.name) ||
+                                 window.OrgDataService.getOrganisations("state", ministryName, d.id || d.name);
+                    if (orgs && orgs.length > 0) {
+                        orgs.forEach(o => {
+                            if (!list.includes(o.name)) list.push(o.name);
+                        });
+                    }
+                });
+            }
+        }
+        if (list.length === 0) {
+            list = [
+                "National Statistical Office (NSO - SDRD)",
+                "National Statistical Office (NSO - FOD)",
+                "National Statistical Office (NSO - NAD)",
+                "National Statistical Office (NSO - ESD)",
+                "National Statistical Office (NSO - PSD)",
+                "National Statistical Office (NSO - SSD)",
+                "National Statistical Systems Training Academy (NSSTA)",
+                "Directorate of Economics & Statistics (DES)",
+                "Economic & Statistics Division",
+                "Data Analytics & Monitoring Directorate"
+            ];
+        }
+        return Array.from(new Set(list));
+    };
+
+    window.getAllDesignationsList = function() {
+        return [
+            "Senior Statistical Officer (SSO) — SSS Cadre",
+            "Junior Statistical Officer (JSO) — SSS Cadre",
+            "Assistant Director (Statistics / Data Analytics) — ISS Cadre",
+            "Deputy Director (Survey Operations / National Accounts) — ISS Cadre",
+            "Joint Director (Economic Statistics / Macroeconomics) — ISS Cadre",
+            "Director (Survey Design / Official Statistics) — ISS Cadre",
+            "Deputy Director General (DDG - Statistical Cadre)",
+            "Additional Director General (ADG - Official Statistics)",
+            "Director General (NSO / Central Statistical System)",
+            "District Statistical Officer (DSO) — State DES",
+            "Assistant Statistical Officer (ASO) — State Statistical Cadre",
+            "Statistical Investigator / Survey Field Officer (FOD)"
+        ];
+    };
 })(window);
