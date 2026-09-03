@@ -524,20 +524,13 @@
     }
 
     // -------------------------------------------------------------
-    // RIGHT FORM A: RETURNING USER LOGIN TAB (WITH 2-STEP OTP)
+    // RIGHT FORM A: RETURNING USER LOGIN TAB (DIRECT AUTHENTICATION)
     // -------------------------------------------------------------
     function renderLoginForm(state) {
-        if (state.loginStep === 2) {
-            return renderLoginStep2(state);
-        }
         return renderLoginStep1(state);
     }
 
     function renderLoginStep1(state) {
-        const isOtpMode = state.loginMode === 'otp';
-        const isMobileValid = isValidMobile(state.loginEmail);
-        const canSendLoginOtp = (isOtpMode ? isMobileValid : (state.loginEmail && state.loginPassword)) && isRobotChecked && !state.isSendingLoginOtp;
-
         return `
         <div class="space-y-4 my-auto max-w-md mx-auto w-full">
             
@@ -558,18 +551,6 @@
                 <span class="text-blue-700 font-extrabold text-sm">Official Account Login</span>
             </div>
 
-            <!-- Login Mode Switcher (Mobile OTP vs Password) -->
-            <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
-                <button type="button" onclick="setLoginMode('otp')" class="py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${isOtpMode ? 'bg-white text-blue-700 shadow-xs ring-1 ring-slate-200 font-black' : 'text-slate-600 hover:text-slate-900'}">
-                    <i class="fa-solid fa-mobile-screen-button text-xs"></i>
-                    <span>Mobile SMS OTP</span>
-                </button>
-                <button type="button" onclick="setLoginMode('password')" class="py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${!isOtpMode ? 'bg-white text-blue-700 shadow-xs ring-1 ring-slate-200 font-black' : 'text-slate-600 hover:text-slate-900'}">
-                    <i class="fa-solid fa-key text-xs"></i>
-                    <span>Password + OTP</span>
-                </button>
-            </div>
-
             <!-- Login Form Error Notice -->
             <div id="loginErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${state.loginError ? '' : 'hidden'}">
                 <i class="fa-solid fa-circle-exclamation text-sm text-red-600 flex-shrink-0"></i>
@@ -580,47 +561,50 @@
                 
                 <!-- Identifier Field -->
                 <div class="space-y-1">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-slate-700">
-                            ${isOtpMode ? 'Official Mobile Number' : 'Official Mobile Number or Email'} <span class="text-red-500">*</span>
-                        </label>
-                        ${isOtpMode ? `<span id="loginMobileCountBadge" class="text-[10px] font-semibold ${isMobileValid ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${(state.loginEmail || '').length}/10 digits</span>` : ''}
-                    </div>
-                    ${isOtpMode ? `
-                    <div class="flex items-center">
-                        <span class="inline-flex items-center px-3 py-2.5 rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 text-slate-700 font-bold text-xs">
-                            🇮🇳 +91
-                        </span>
-                        <input id="loginEmail" type="tel" maxLength="10" required value="${state.loginEmail}" oninput="handleLoginMobileChange(this.value)" placeholder="Enter 10-digit mobile (e.g. 9876543210)" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    </div>
-                    ` : `
-                    <input id="loginEmail" type="text" required value="${state.loginEmail}" oninput="updateLoginState()" placeholder="e.g. 9876543210 or officer@nic.in" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    `}
+                    <label class="block text-xs font-bold text-slate-700">
+                        Official Mobile Number or Email <span class="text-red-500">*</span>
+                    </label>
+                    <input id="loginEmail" type="text" required value="${state.loginEmail}" oninput="updateLoginState()" placeholder="e.g. 9876543210 or ananya.sharma@nic.in" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
 
-                <!-- Password Field (Only in password mode) -->
-                ${!isOtpMode ? `
+                <!-- Password Field -->
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
-                        <label class="block text-xs font-bold text-slate-700">Password <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-slate-700">Password</label>
+                        <span class="text-[10px] text-slate-400">Default: password123</span>
                     </div>
                     <div class="relative">
-                        <input id="loginPassword" type="password" required value="${state.loginPassword}" oninput="updateLoginState()" placeholder="••••••••••••" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 pr-10">
+                        <input id="loginPassword" type="password" value="${state.loginPassword}" oninput="updateLoginState()" placeholder="Enter password (e.g. password123)" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 pr-10">
                         <button type="button" onclick="togglePasswordVisibility('loginPassword', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
                 </div>
-                ` : ''}
 
-                <!-- INTUITIVE SECURITY CAPTCHA COMPONENT -->
-                ${renderCaptchaComponent('login')}
-
-                <!-- Main Login / Send OTP Button -->
-                <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 ${canSendLoginOtp ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md' : 'bg-slate-300 cursor-pointer'} text-white font-bold rounded-lg text-sm transition-all flex items-center justify-center gap-2">
-                    <span id="loginBtnText">${state.isSendingLoginOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching Login OTP...' : (isOtpMode ? 'Send Login OTP via SMS →' : 'Continue with OTP Verification →')}</span>
+                <!-- Main Login Button -->
+                <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-md text-white font-bold rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                    <span id="loginBtnText">${state.isSendingLoginOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...' : 'Log In to StatSkill AI →'}</span>
                 </button>
             </form>
+
+            <!-- Quick Persona Accounts Card for instant testing -->
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+                <div class="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                    <span>⚡ Quick Test Personas:</span>
+                    <span class="text-[10px] text-slate-400 font-normal">Click to auto-fill</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 pt-0.5">
+                    <button type="button" onclick="quickFillPersona('ananya.sharma@nic.in', 'password123')" class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-semibold text-blue-700 hover:bg-blue-50 cursor-pointer shadow-2xs">
+                        Ananya (SSO)
+                    </button>
+                    <button type="button" onclick="quickFillPersona('rajesh.verma@gov.in', 'password123')" class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-semibold text-blue-700 hover:bg-blue-50 cursor-pointer shadow-2xs">
+                        Dr. Rajesh (Director)
+                    </button>
+                    <button type="button" onclick="quickFillPersona('sunita.rao@nic.in', 'password123')" class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-semibold text-blue-700 hover:bg-blue-50 cursor-pointer shadow-2xs">
+                        Sunita (SSO)
+                    </button>
+                </div>
+            </div>
 
             <!-- Provider SSO Selector -->
             <div class="space-y-2 pt-1">
@@ -757,25 +741,20 @@
                 </button>
             </div>
 
-            <!-- Step Progress Bar -->
+            <!-- Step Progress Bar (Direct 2-Step Registration) -->
             <div class="flex items-center justify-between text-xs py-1">
                 <div class="flex items-center gap-1.5">
-                    <div class="w-5 h-5 rounded-full ${step >= 1 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">1</div>
-                    <span class="font-bold ${step >= 1 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Hierarchy & Contact</span>
+                    <div class="w-5 h-5 rounded-full ${step === 1 ? 'bg-orange-500 text-white' : 'bg-emerald-600 text-white'} font-bold flex items-center justify-center text-[11px]">1</div>
+                    <span class="font-bold ${step === 1 ? 'text-blue-600' : 'text-slate-600'} text-[11px]">Hierarchy & Profile</span>
                 </div>
                 <div class="flex-1 h-1 ${step >= 2 ? 'bg-orange-500' : 'bg-slate-200'} mx-2 rounded-full"></div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-5 h-5 rounded-full ${step >= 2 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">2</div>
-                    <span class="font-bold ${step >= 2 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">OTP Verification</span>
-                </div>
-                <div class="flex-1 h-1 ${step >= 3 ? 'bg-orange-500' : 'bg-slate-200'} mx-2 rounded-full"></div>
-                <div class="flex items-center gap-1.5">
-                    <div class="w-5 h-5 rounded-full ${step >= 3 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} font-bold flex items-center justify-center text-[11px]">3</div>
-                    <span class="font-bold ${step >= 3 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Security Password</span>
+                    <span class="font-bold ${step >= 2 ? 'text-blue-600' : 'text-slate-400'} text-[11px]">Password & Complete</span>
                 </div>
             </div>
 
-            ${step === 1 ? renderStep1() : (step === 2 ? renderStep2() : renderStep3())}
+            ${step === 1 ? renderStep1() : renderStep3()}
 
         </div>
         `;
@@ -931,7 +910,7 @@
                     <span class="inline-flex items-center px-3 py-2 rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 text-slate-700 font-bold text-xs">
                         🇮🇳 +91
                     </span>
-                    <input id="regOfficialMobile" type="tel" maxLength="10" required ${!contactUnlocked ? 'disabled' : ''} value="${authState.mobile}" oninput="handleMobileChange(this.value)" placeholder="${contactUnlocked ? 'Enter 10-digit mobile number (e.g. 9876543210)' : 'Fill all fields above to enter mobile'}" class="w-full px-3 py-2 ${contactUnlocked ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} border rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <input id="regOfficialMobile" type="tel" maxLength="10" required value="${authState.mobile || ''}" oninput="handleMobileChange(this.value)" placeholder="Enter 10-digit mobile number (e.g. 9876543210)" class="w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
                 <div id="step1MobileError" class="text-[11px] text-red-600 font-semibold flex items-center gap-1 mt-1 hidden">
                     <i class="fa-solid fa-circle-exclamation text-xs"></i> Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)
@@ -943,16 +922,16 @@
                 <label class="block text-xs font-bold text-slate-700">
                     7. Official Email Address (Optional)
                 </label>
-                <input id="regOfficialEmail" type="email" ${!contactUnlocked ? 'disabled' : ''} value="${authState.email}" oninput="handleEmailChange(this.value)" placeholder="${contactUnlocked ? 'e.g. officer@nic.in or yourname@gmail.com' : 'Fill all fields above to enter email'}" class="w-full px-3 py-2 ${contactUnlocked ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'} border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <input id="regOfficialEmail" type="email" value="${authState.email || ''}" oninput="handleEmailChange(this.value)" placeholder="e.g. officer@nic.in or yourname@gmail.com" class="w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600">
                 <div id="step1EmailError" class="text-[11px] text-red-600 font-semibold flex items-center gap-1 mt-1 hidden">
                     <i class="fa-solid fa-circle-exclamation text-xs"></i> Please enter a valid email format
                 </div>
             </div>
 
-            <!-- 8. Send OTP Button (LOCKED until 10-digit mobile is valid) -->
+            <!-- 8. Proceed to Password Button -->
             <div class="pt-1.5">
                 <button type="button" onclick="handleStep1Submit()" id="sendOtpBtn" ${!canSendOtp ? 'disabled' : ''} class="w-full py-2.5 ${canSendOtp ? 'bg-[#0077d6] hover:bg-[#0066cc] cursor-pointer shadow-sm' : 'bg-slate-300 cursor-not-allowed'} text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-2">
-                    <span id="sendOtpBtnText">${authState.isSendingOtp ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching SMS OTP...' : 'Send OTP Code via SMS →'}</span>
+                    <span id="sendOtpBtnText">Proceed to Set Password →</span>
                 </button>
             </div>
 
@@ -1064,9 +1043,9 @@
         return `
         <form id="regStep3Form" onsubmit="event.preventDefault(); handleStep3Register();" class="space-y-3.5">
             
-            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0"></i>
-                <span>Mobile <strong>${verifiedDisplay}</strong> verified! Create your official account password.</span>
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-blue-600 text-base flex-shrink-0"></i>
+                <span>Profile details saved. Now create your official password to complete registration.</span>
             </div>
 
             <div id="step3ErrorNotice" class="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2 animate-shake ${authState.step3Error ? '' : 'hidden'}">
@@ -1359,37 +1338,10 @@
     };
 
     window.checkAndUnlockContact = function() {
-        const contactUnlocked = isAllPriorFilled();
-        const mobileInput = document.getElementById('regOfficialMobile');
-        const emailInput = document.getElementById('regOfficialEmail');
         const sendOtpBtn = document.getElementById('sendOtpBtn');
         const errNotice = document.getElementById('step1ErrorNotice');
 
         if (errNotice) errNotice.classList.add('hidden');
-
-        if (mobileInput) {
-            if (contactUnlocked) {
-                mobileInput.removeAttribute('disabled');
-                mobileInput.className = "w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-r-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-600";
-            } else {
-                mobileInput.value = '';
-                authState.mobile = '';
-                mobileInput.setAttribute('disabled', 'true');
-                mobileInput.className = "w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed rounded-r-lg text-xs font-mono font-bold focus:outline-none";
-            }
-        }
-
-        if (emailInput) {
-            if (contactUnlocked) {
-                emailInput.removeAttribute('disabled');
-                emailInput.className = "w-full px-3 py-2 bg-white border border-slate-300 text-slate-800 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600";
-            } else {
-                emailInput.value = '';
-                authState.email = '';
-                emailInput.setAttribute('disabled', 'true');
-                emailInput.className = "w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed rounded-lg text-xs font-medium focus:outline-none";
-            }
-        }
 
         const canSend = isStep1Valid() && !authState.isSendingOtp;
         if (sendOtpBtn) {
@@ -1685,9 +1637,7 @@
         authState.loginEmail = email;
         authState.loginPassword = pwd;
 
-        const isOtpMode = authState.loginMode === 'otp';
-        const isMobileValid = isValidMobile(email);
-        const canSubmit = (isOtpMode ? isMobileValid : (email !== '' && pwd !== '')) && isRobotChecked && !authState.isSendingLoginOtp;
+        const canSubmit = email !== '' && !authState.isSendingLoginOtp;
 
         if (btn) {
             if (canSubmit) {
@@ -1752,59 +1702,9 @@
             return;
         }
 
-        authState.isSendingOtp = true;
-        const btnText = document.getElementById('sendOtpBtnText');
-        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching SMS OTP...';
-        checkAndUnlockContact();
-
-        fetch('/api/auth/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mobile: authState.mobile,
-                email: authState.email,
-                ministry: authState.ministry
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            authState.isSendingOtp = false;
-            if (data.success) {
-                authState.demoOtp = data.otp || '';
-                authState.step = 2;
-                authState.step2Error = null;
-                authState.otp = '';
-                if (window.store) window.store.notify();
-                startResendTimer();
-            } else {
-                const errNotice = document.getElementById('step1ErrorNotice');
-                const errText = document.getElementById('step1ErrorText');
-                if (errText) {
-                    if (data.alreadyRegistered || (data.error && data.error.toLowerCase().includes('already registered'))) {
-                        errText.innerHTML = `
-                            <div class="space-y-1.5 py-0.5">
-                                <div class="font-bold text-red-700">${data.error}</div>
-                                <button type="button" onclick="switchToLoginWithIdentifier('${authState.mobile || authState.email}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm">
-                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Switch to Login with this Number →
-                                </button>
-                            </div>
-                        `;
-                    } else {
-                        errText.textContent = data.error || "Failed to send OTP. Please try again.";
-                    }
-                }
-                if (errNotice) errNotice.classList.remove('hidden');
-                checkAndUnlockContact();
-            }
-        })
-        .catch(err => {
-            authState.isSendingOtp = false;
-            const errNotice = document.getElementById('step1ErrorNotice');
-            const errText = document.getElementById('step1ErrorText');
-            if (errText) errText.textContent = "Network error connecting to backend server.";
-            if (errNotice) errNotice.classList.remove('hidden');
-            checkAndUnlockContact();
-        });
+        // Direct transition to Password Setup (no OTP required)
+        authState.step = 3;
+        if (window.store) window.store.notify();
     };
 
     window.switchToLoginWithIdentifier = function(val) {
@@ -1991,76 +1891,62 @@
     };
 
     // -------------------------------------------------------------
-    // LOGIN STEP 1: DISPATCH LOGIN OTP VIA SMS
+    // DIRECT LOGIN: NO OTP REQUIRED
     // -------------------------------------------------------------
+    window.quickFillPersona = function(email, pwd) {
+        const emailEl = document.getElementById('loginEmail');
+        const pwdEl = document.getElementById('loginPassword');
+        if (emailEl) { emailEl.value = email; authState.loginEmail = email; }
+        if (pwdEl) { pwdEl.value = pwd; authState.loginPassword = pwd; }
+        updateLoginState();
+    };
+
     window.handleLoginSubmit = function() {
         const emailEl = document.getElementById('loginEmail');
         const pwdEl = document.getElementById('loginPassword');
-        const loginErr = document.getElementById('loginCaptchaError');
 
         authState.loginEmail = emailEl ? emailEl.value.trim() : '';
         authState.loginPassword = pwdEl ? pwdEl.value : '';
 
-        const isOtpMode = authState.loginMode === 'otp';
-
-        if (isOtpMode) {
-            if (!isValidMobile(authState.loginEmail)) {
-                const errNotice = document.getElementById('loginErrorNotice');
-                const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = "Please enter a valid 10-digit Indian mobile number.";
-                if (errNotice) errNotice.classList.remove('hidden');
-                return;
-            }
-        } else {
-            if (!authState.loginEmail || !authState.loginPassword) {
-                const errNotice = document.getElementById('loginErrorNotice');
-                const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = "Please enter your mobile/email and password.";
-                if (errNotice) errNotice.classList.remove('hidden');
-                return;
-            }
-        }
-
-        if (!isRobotChecked) {
-            if (loginErr) loginErr.classList.remove('hidden');
+        if (!authState.loginEmail) {
             const errNotice = document.getElementById('loginErrorNotice');
             const errText = document.getElementById('loginErrorText');
-            if (errText) errText.textContent = "Please enter the characters shown in the CAPTCHA box.";
+            if (errText) errText.textContent = "Please enter your official mobile number or email.";
             if (errNotice) errNotice.classList.remove('hidden');
             return;
         }
 
         authState.isSendingLoginOtp = true;
         const btnText = document.getElementById('loginBtnText');
-        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching Login OTP...';
+        if (btnText) btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...';
         updateLoginState();
 
-        fetch('/api/auth/login-send-otp', {
+        fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 identifier: authState.loginEmail,
-                password: authState.loginPassword,
-                passwordless: isOtpMode
+                password: authState.loginPassword
             })
         })
         .then(res => res.json())
         .then(data => {
             authState.isSendingLoginOtp = false;
-            if (data.success) {
-                authState.loginDemoOtp = data.otp || '';
-                authState.loginMobile = data.mobile || authState.loginEmail;
-                authState.loginStep = 2;
-                authState.loginOtp = '';
-                authState.loginStep2Error = null;
-                if (window.store) window.store.notify();
-                startLoginResendTimer();
+            if (data.success && data.user) {
+                if (window.store) {
+                    const target = window.store.state.pendingRedirectView || 'learner-dash';
+                    window.store.state.pendingRedirectView = null;
+                    window.store.state.user = data.user;
+                    window.store.state.currentUser = data.user;
+                    window.store.state.isAuthModalOpen = false;
+                    resetAuthState();
+                    window.store.navigate(target);
+                }
             } else {
                 const errNotice = document.getElementById('loginErrorNotice');
                 const errText = document.getElementById('loginErrorText');
-                if (errText) errText.textContent = data.error || "Login verification failed. Please try again.";
+                if (errText) errText.textContent = data.error || "Login failed. Please check your credentials.";
                 if (errNotice) errNotice.classList.remove('hidden');
-                refreshCaptcha();
                 updateLoginState();
             }
         })
@@ -2070,7 +1956,6 @@
             const errText = document.getElementById('loginErrorText');
             if (errText) errText.textContent = "Network error connecting to authentication server.";
             if (errNotice) errNotice.classList.remove('hidden');
-            refreshCaptcha();
             updateLoginState();
         });
     };

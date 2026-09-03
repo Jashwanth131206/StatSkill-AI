@@ -27,3 +27,22 @@ ENV/
 
 # Logs
 *.log
+
+# Secrets & Environment Variables
+.env
+*.env
+.env.*
+!.env.example
+
+# Vector DB & Storage
+chroma_db/
+pdf_uploads/
+*.db
+*.sqlite
+*.sqlite3
+
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -425,18 +425,55 @@ function selectSampleDoc(docId) {
 function handleFileUpload(e) {
     const file = e.target.files[0];
     if (file) {
-        selectedDoc = {
-            id: `doc_${Date.now()}`,
-            title: file.name,
-            pages: 24,
-            fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-            topics: ["Uploaded Survey Guide", "Field Protocol", "Estimation Formulas"],
-            difficulty: "Medium",
-            domain: "Statistical",
-            summary: "User uploaded official document for automated question generation."
-        };
-        window.store.notify();
-        alert(`Document "${file.name}" uploaded and parsed successfully!`);
+        const inputEl = document.getElementById('fileUploadInput');
+        const dropZone = inputEl ? inputEl.parentElement : null;
+        let origHtml = dropZone ? dropZone.innerHTML : '';
+
+        if (dropZone) {
+            dropZone.innerHTML = `
+                <div class="py-4 text-center space-y-2">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl text-blue-600"></i>
+                    <div class="text-xs font-bold text-slate-800">Embedding "${file.name}" with BAAI/bge-m3 into ChromaDB...</div>
+                    <div class="text-[10px] text-slate-500">Chunking text & generating dense vector embeddings</div>
+                </div>
+            `;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('department', 'Official Study Material');
+        formData.append('ministry', 'Government of India');
+
+        fetch('/api/upload-pdf', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (dropZone) dropZone.innerHTML = origHtml;
+            if (data.success) {
+                const numChunks = data.chunks || 15;
+                selectedDoc = {
+                    id: `doc_${Date.now()}`,
+                    title: file.name,
+                    pages: numChunks,
+                    fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+                    summary: `Ready in ChromaDB (${numChunks} chunks embedded with BAAI/bge-m3).`
+                };
+                if (window.store) window.store.notify();
+                if (data.skipped) {
+                    alert(`ℹ️ "${file.name}" is already in your knowledge base (${numChunks} chunks ready). You can generate questions right away!`);
+                } else {
+                    alert(`✅ "${file.name}" successfully uploaded & embedded into ChromaDB with ${numChunks} chunks!`);
+                }
+            } else {
+                alert(`Upload notice: ${data.message || 'Could not parse PDF'}`);
+            }
+        })
+        .catch(err => {
+            if (dropZone) dropZone.innerHTML = origHtml;
+            alert(`Error uploading file: ${err}`);
+        });
     }
 }
 
@@ -479,11 +516,13 @@ function triggerAiGeneration() {
             language: lang
         };
     } else {
-        endpoint = '/api/ai/generate-questions';
+        endpoint = '/api/ai/generate-rag-quiz';
         payload = {
-            document_name: selectedDoc ? selectedDoc.title : "NSSO_Manual.pdf",
-            num_questions: numCount,
-            bloom_level: bloom,
+            topic: selectedDoc ? selectedDoc.title : "Study Material",
+            department: "Official Study Material",
+            ministry: "Government of India",
+            numQuestions: numCount,
+            bloomLevel: bloom,
             difficulty: diff,
             language: lang
         };
@@ -500,6 +539,26 @@ function triggerAiGeneration() {
             btn.disabled = false;
             procBox.classList.add('hidden');
             qContainer.classList.remove('hidden');
+
+            if (!data.success && (!data.questions || !data.questions.length)) {
+                const wrapper = document.getElementById('questionsListWrapper');
+                if (wrapper) {
+                    wrapper.innerHTML = `
+                        <div class="p-6 bg-red-50 border border-red-200 rounded-2xl text-center space-y-3">
+                            <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <h3 class="font-bold text-red-900 text-base">Generation Notice</h3>
+                            <p class="text-xs text-red-700 max-w-md mx-auto">${data.message || 'No material found. Please upload a PDF first.'}</p>
+                            <button onclick="document.getElementById('fileUploadInput').click()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs cursor-pointer inline-flex items-center gap-2">
+                                <i class="fa-solid fa-file-arrow-up"></i> Upload PDF Now
+                            </button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
             generatedQuestionsList = data.questions || [];
             renderQuestionsList(generatedQuestionsList);
 
@@ -509,7 +568,7 @@ function triggerAiGeneration() {
                     subTitle.innerHTML = `<i class="fa-solid fa-bolt text-amber-500"></i> ${data.poweredBy} ${data.latencyMs ? `(${data.latencyMs}ms)` : ''}`;
                 }
             }
-        }, 900);
+        }, 600);
     })
     .catch(() => {
         btn.disabled = false;
