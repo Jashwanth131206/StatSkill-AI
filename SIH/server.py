@@ -17,6 +17,7 @@ import hashlib
 import secrets
 import sqlite3
 import re
+from groq_client import groq_quiz_client
 
 PORT = 8000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -529,6 +530,8 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json({"success": True, "igot_sync": STATE["igot_sync_status"]})
         elif path == "/api/health":
             self.send_json({"status": "healthy", "platform": "StatSkill AI - MoSPI", "timestamp": time.time()})
+        elif path == "/api/ai/groq-status":
+            self.send_json({"success": True, "status": groq_quiz_client.get_status()})
         elif path == "/api/states":
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -1203,6 +1206,53 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # -------------------------------------------------------------
+        # ROUTE: POST /api/ai/groq-config (Configure Groq API Key & Model)
+        # -------------------------------------------------------------
+        elif path == "/api/ai/groq-config":
+            key = body.get("apiKey") or body.get("api_key")
+            model = body.get("model")
+            if key is not None:
+                groq_quiz_client.set_api_key(key)
+            if model:
+                groq_quiz_client.model = model
+            self.send_json({
+                "success": True,
+                "message": "Groq configuration updated successfully",
+                "status": groq_quiz_client.get_status()
+            })
+            return
+
+        # -------------------------------------------------------------
+        # ROUTE: POST /api/ai/generate-ministry-quiz (Groq LPU Quiz Generator)
+        # -------------------------------------------------------------
+        elif path == "/api/ai/generate-ministry-quiz":
+            ministry = body.get("ministry") or "Ministry of Statistics & Programme Implementation"
+            department = body.get("department") or "National Statistical Office (NSO - NAD)"
+            sector_tag = body.get("sectorTag") or body.get("sector_tag") or "Official Statistics"
+            d6_competencies = body.get("d6Competencies") or body.get("d6_competencies") or []
+            role_grade = body.get("roleGrade") or body.get("role_grade") or "R3"
+            num_questions = body.get("numQuestions") or body.get("num_questions") or 5
+            difficulty = body.get("difficulty") or "Medium"
+            bloom_level = body.get("bloomLevel") or body.get("bloom_level") or "Apply"
+            topic = body.get("topic") or None
+            language = body.get("language") or "English"
+
+            quiz_res = groq_quiz_client.generate_quiz(
+                ministry=ministry,
+                department=department,
+                sector_tag=sector_tag,
+                d6_competencies=d6_competencies,
+                role_grade=role_grade,
+                num_questions=num_questions,
+                difficulty=difficulty,
+                bloom_level=bloom_level,
+                topic=topic,
+                language=language
+            )
+            self.send_json(quiz_res)
+            return
+
+        # -------------------------------------------------------------
         # ROUTE: POST /api/ai/generate-questions (Adaptive AI Questions)
         # -------------------------------------------------------------
         elif path == "/api/ai/generate-questions":
@@ -1210,64 +1260,23 @@ class StatSkillHandler(http.server.SimpleHTTPRequestHandler):
             experience = float(body.get("experienceYears") or body.get("experience") or 4.0)
             role = body.get("role") or "Statistical Officer"
             degree = body.get("degree") or "Statistics"
+            doc_name = body.get("document_name") or "Official Statistical Manual"
+            num_q = int(body.get("num_questions") or 5)
 
-            # Dynamic AI question generation calibrated by experience and role
-            questions = [
-                {
-                    "id": "q1_survey",
-                    "domain": "Survey Design & Sampling",
-                    "level": "Level 4 (Advanced)" if experience >= 5 else "Level 2 (Working)",
-                    "question": f"In official household surveys like PLFS conducted under {role} supervision, why is Circular Systematic Sampling with Probability Proportional to Size (PPS) utilized over Simple Random Sampling?",
-                    "options": [
-                        "It provides self-weighting sample designs and accounts for heterogeneous primary sampling unit sizes, minimizing sampling error.",
-                        "It guarantees equal selection probability for every primary unit regardless of cluster population size.",
-                        "It eliminates the necessity for second-stage household listing inside selected enumeration blocks.",
-                        "It reduces non-sampling variance by standardizing enumerator travel itineraries."
-                    ],
-                    "correctIndex": 0,
-                    "explanation": "PPS sampling ensures that larger demographic clusters have selection probabilities proportionate to their size, producing optimal precision for national aggregations."
-                },
-                {
-                    "id": "q2_analytics",
-                    "domain": "Python & Data Science",
-                    "level": "Level 3 (Applied)",
-                    "question": "When computing national GVA aggregations from microdata using Python Pandas, which vectorised approach correctly handles survey sampling multiplier weights (Multipliers / Weights)?",
-                    "options": [
-                        "df.groupby('NIC_2Digit').apply(lambda g: np.sum(g['Output_Val'] * g['Multiplier']) / np.sum(g['Multiplier']))",
-                        "df.groupby('NIC_2Digit')['Output_Val'].mean() * 100",
-                        "df['Output_Val'].sum() / len(df)",
-                        "df.filter(like='Multiplier').describe()"
-                    ],
-                    "correctIndex": 0,
-                    "explanation": "Weighted averages in official survey datasets require multiplying item values by their respective sampling multipliers divided by total weight sum."
-                },
-                {
-                    "id": "q3_governance",
-                    "domain": "DPDP Act 2023 & Data Privacy",
-                    "level": "Level 4 (Governance)",
-                    "question": "Under the Digital Personal Data Protection (DPDP) Act 2023 and official statistical microdata dissemination guidelines, what step must be executed before releasing public anonymized census microdata?",
-                    "options": [
-                        "Apply k-anonymity (k>=5) and l-diversity to quasi-identifiers (District, Age, Gender, Religion) and top-code outlier income values.",
-                        "Directly publish all raw surveyed records without masking because official statistics are exempt.",
-                        "Retain raw Aadhaar and Phone numbers provided surveyed citizens signed physical consent.",
-                        "Convert all quantitative continuous metrics into binary indicators."
-                    ],
-                    "correctIndex": 0,
-                    "explanation": "Statistical disclosure control mandates perturbation, k-anonymity, and top-coding of sensitive microdata to prevent deanonymization."
-                }
-            ]
-
-            self.send_json({
-                "success": True,
-                "count": len(questions),
-                "tailoredFor": {
-                    "role": role,
-                    "experienceYears": experience,
-                    "degree": degree,
-                    "domains": domains
-                },
-                "questions": questions
-            })
+            # Delegate to Groq wrapper if configured or requested
+            quiz_res = groq_quiz_client.generate_quiz(
+                ministry=body.get("ministry", "Ministry of Statistics & Programme Implementation"),
+                department=body.get("department", "National Statistical Office (NSO)"),
+                sector_tag=body.get("sectorTag", "Survey Methodology & Official Statistics"),
+                d6_competencies=domains,
+                role_grade=body.get("roleGrade", "R3"),
+                num_questions=num_q,
+                difficulty=body.get("difficulty", "Medium"),
+                bloom_level=body.get("bloom_level", "Apply"),
+                topic=f"Knowledge extraction from {doc_name}",
+                language=body.get("language", "English")
+            )
+            self.send_json(quiz_res)
             return
 
         elif path == "/api/assessments/submit":

@@ -325,16 +325,30 @@ function renderLearnerDashboard(state) {
                     </div>
                 </div>
 
-                <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-2">
-                    <div class="font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-lightbulb text-orange-500"></i> Recommended Next Action
+                <!-- Ministry Cadre Assessment Card Powered by Groq LPU -->
+                <div class="p-4 bg-gradient-to-br from-blue-50 to-indigo-50/60 border border-blue-200 rounded-2xl text-xs text-blue-950 space-y-3 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-bolt text-amber-500"></i> Groq LPU AI
+                        </span>
+                        <span class="text-[10px] text-blue-700 font-bold">${user.ministry ? user.ministry.split('(')[0] : 'MoSPI'}</span>
                     </div>
-                    <p class="text-[11px] text-blue-800">
-                        Attempt the AI-generated assessment from the <em>NSSO 78th Round Sampling Manual</em> to consolidate your survey weighting proficiency.
-                    </p>
-                    <button onclick="store.navigate('ai-generator')" class="btn btn-primary text-xs py-1.5 px-3 w-full">
-                        <i class="fa-solid fa-file-pdf text-orange-400"></i> Launch AI Assessment Generator
-                    </button>
+
+                    <div>
+                        <h4 class="font-bold text-navy-900 text-xs">Official Ministry Cadre Quiz</h4>
+                        <p class="text-[11px] text-slate-600 mt-0.5">
+                            Targeted for <strong>${user.department || 'National Statistical Office'}</strong> officers (${typeof window.getOfficerRoleGrade === 'function' ? window.getOfficerRoleGrade(user.designation || user.role, user.experience || 4) : 'R3'}).
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="quickLaunchMinistryQuiz()" id="quickQuizBtn" class="btn btn-saffron text-xs py-2 px-2.5 font-bold shadow-xs flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-play text-[10px]"></i> Quick Check (5 Qs)
+                        </button>
+                        <button onclick="store.navigate('ai-generator')" class="btn btn-secondary text-xs py-2 px-2.5 font-bold flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-[10px]"></i> Configure Exam
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -424,3 +438,55 @@ function initCompetencyRadarChart() {
 
 window.renderLearnerDashboard = renderLearnerDashboard;
 window.initCompetencyRadarChart = initCompetencyRadarChart;
+
+window.quickLaunchMinistryQuiz = function() {
+    const btn = document.getElementById('quickQuizBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Generating...`;
+    }
+
+    const user = window.store.state.user || {};
+    const ministry = user.ministry || "Ministry of Statistics and Programme Implementation (MoSPI)";
+    const dept = user.department || "National Statistical Office (NSO - NAD)";
+    const deptMap = window.DEPARTMENT_FRAMEWORK_MAP || {};
+    const config = deptMap[dept] || { sectorTag: "Official Statistics", d6Competencies: ["Statistical Standards"] };
+    const roleGrade = (typeof window.getOfficerRoleGrade === 'function') 
+        ? window.getOfficerRoleGrade(user.designation || user.role, user.experience || 4) 
+        : "R3";
+
+    fetch('/api/ai/generate-ministry-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ministry: ministry,
+            department: dept,
+            sectorTag: config.sectorTag || "Official Statistics",
+            d6Competencies: config.d6Competencies || [],
+            roleGrade: roleGrade,
+            numQuestions: 5,
+            difficulty: "Medium",
+            bloomLevel: "Apply"
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-play text-[10px]"></i> Quick Check (5 Qs)`;
+        }
+        if (data.questions && data.questions.length > 0) {
+            window.store.startQuiz(data.questions, `${dept || ministry} (${roleGrade}) Competency Assessment`);
+        } else {
+            window.store.navigate('ai-generator');
+        }
+    })
+    .catch(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-play text-[10px]"></i> Quick Check (5 Qs)`;
+        }
+        window.store.navigate('ai-generator');
+    });
+};
+

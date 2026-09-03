@@ -12,9 +12,9 @@ function renderNavbar(state) {
 
     // Navigation Labels Dictionary
     const navLabels = {
-        en: { home: "Home", about: "About", dashboard: "Dashboard", userGuide: "User Guide", loginBtn: "Login / Register" },
-        hi: { home: "होम", about: "हमारे बारे में", dashboard: "डैशबोर्ड", userGuide: "उपयोगकर्ता निर्देशिका", loginBtn: "लॉगिन / पंजीकरण" },
-        te: { home: "హోమ్", about: "గురించి", dashboard: "డ్యాష్‌బోర్డ్", userGuide: "యూజర్ గైడ్", loginBtn: "లాగిన్ / రిజిస్టర్" }
+        en: { home: "Home", about: "About", dashboard: "Dashboard", quizzes: "Ministry Quizzes", userGuide: "User Guide", loginBtn: "Login / Register" },
+        hi: { home: "होम", about: "हमारे बारे में", dashboard: "डैशबोर्ड", quizzes: "मंत्रालय प्रश्नोत्तरी", userGuide: "उपयोगकर्ता निर्देशिका", loginBtn: "लॉगिन / पंजीकरण" },
+        te: { home: "హోమ్", about: "గురించి", dashboard: "డ్యాష్‌బోర్డ్", quizzes: "మంత్రిత్వ క్విజ్‌లు", userGuide: "యూజర్ గైడ్", loginBtn: "లాగిన్ / రిజిస్టర్" }
     };
     const labels = navLabels[lang] || navLabels.en;
 
@@ -22,6 +22,7 @@ function renderNavbar(state) {
         { id: "landing", label: labels.home, icon: "fa-house", action: () => store.navigate('landing') },
         { id: "about", label: labels.about, icon: "fa-circle-info", action: () => { store.navigate('landing'); setTimeout(() => { if (typeof scrollToSection === 'function') scrollToSection('whyChooseSection'); }, 100); } },
         { id: "learner-dash", label: labels.dashboard, icon: "fa-chart-pie", action: () => store.navigate('learner-dash') },
+        { id: "ai-generator", label: labels.quizzes, icon: "fa-bolt", action: () => store.navigate('ai-generator') },
         { id: "user-guide", label: labels.userGuide, icon: "fa-book-open", action: () => { store.navigate('landing'); setTimeout(() => { if (typeof scrollToSection === 'function') scrollToSection('raiseQuerySection'); }, 100); } }
     ];
 
